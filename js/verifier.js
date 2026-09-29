@@ -123,5 +123,7 @@
 
   function renderAll() { renderQueue(); renderHistory(); renderProfile(); }
   renderAll();
+  // Another tab (e.g. Verifier or Admin) changed the data -> refresh everything.
+  document.addEventListener("nasoi:update", renderAll);
   U.initDashboard(me, renderAll);
 })();

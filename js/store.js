@@ -7,7 +7,10 @@
   "use strict";
 
   const DB_KEY = "nasoi_db_v1";
-  const SESSION_KEY = "nasoi_session";
+  // One session per role, so DEO, Verifier and Admin can all be logged in
+  // at the same time in the same browser (e.g. in three tabs).
+  const SESSION_PREFIX = "nasoi_session_";
+  const ROLES = ["deo", "verifier", "admin"];
 
   /* ---------- Small helpers ---------- */
   const pad = (n, len) => String(n).padStart(len, "0");
@@ -177,13 +180,20 @@
   load();
 
   /* ---------- Session ---------- */
-  function getSession() {
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (e) { return null; }
+  function getSession(role) {
+    try {
+      const s = JSON.parse(localStorage.getItem(SESSION_PREFIX + role) || "null");
+      return s && getUser(s.id) && getUser(s.id).role === role ? s : null;
+    } catch (e) { return null; }
   }
   function setSession(user) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id, role: user.role, at: Date.now() }));
+    localStorage.setItem(SESSION_PREFIX + user.role, JSON.stringify({ id: user.id, role: user.role, at: Date.now() }));
   }
-  function clearSession() { localStorage.removeItem(SESSION_KEY); }
+  function clearSession(role) { localStorage.removeItem(SESSION_PREFIX + role); }
+  // All roles that currently have someone logged in, e.g. [{role:"deo", user:{...}}]
+  function activeSessions() {
+    return ROLES.map((r) => { const s = getSession(r); return s ? { role: r, user: getUser(s.id) } : null; }).filter(Boolean);
+  }
 
   /* ---------- Users ---------- */
   const getUser = (id) => db.users.find((u) => u.id === id) || null;
@@ -313,12 +323,15 @@
   }
 
   function reset() { db = seed(); save(); }
+  // Re-read the database (used when another tab changed it).
+  function reload() { load(); }
 
   window.Store = {
     STATES, TASK_TYPES, REJECT_REASONS,
+    DB_KEY, SESSION_PREFIX, ROLES,
     get db() { return db; },
-    save, reset,
-    getSession, setSession, clearSession,
+    save, reset, reload,
+    getSession, setSession, clearSession, activeSessions,
     getUser, login, registerDeo, updateUser, changePassword,
     assignmentsFor, getAssignment, createAssignment, markAssignmentsSeen, setAssignmentStatus,
     entriesFor, getEntry, addEntry, resubmitEntry, verifyEntry,

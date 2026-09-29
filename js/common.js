@@ -72,8 +72,8 @@
   /* ---------- Dashboard helpers ---------- */
   // Redirect to login unless the current session has the given role.
   function guard(role) {
-    const s = Store.getSession();
-    const user = s && s.role === role ? Store.getUser(s.id) : null;
+    const s = Store.getSession(role);
+    const user = s ? Store.getUser(s.id) : null;
     if (!user) { location.replace("login.html?role=" + role); return null; }
     return user;
   }
@@ -83,8 +83,20 @@
     $$("[data-user-name]").forEach((el) => (el.textContent = user.name));
     $$("[data-user-id]").forEach((el) => (el.textContent = user.id));
     $$("[data-logout]").forEach((el) => el.addEventListener("click", (e) => {
-      e.preventDefault(); Store.clearSession(); location.href = "login.html";
+      e.preventDefault(); Store.clearSession(user.role); location.href = "login.html?role=" + user.role;
     }));
+
+    // Live sync between tabs: when another tab (another role) changes data,
+    // reload it here and re-render the current section.
+    window.addEventListener("storage", (e) => {
+      if (e.key === Store.DB_KEY) {
+        Store.reload();
+        document.dispatchEvent(new CustomEvent("nasoi:update"));
+        show();
+      } else if (e.key === Store.SESSION_PREFIX + user.role && !Store.getSession(user.role)) {
+        location.replace("login.html?role=" + user.role); // logged out in another tab
+      }
+    });
     const menu = $("#menuBtn");
     if (menu) menu.addEventListener("click", () => document.body.classList.toggle("nav-open"));
 

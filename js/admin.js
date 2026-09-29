@@ -239,6 +239,8 @@
 
   function renderAll() { renderOverview(); renderOperators(); renderAssignments(); renderEntries(); renderPayouts(); renderSettings(); }
   renderAll();
+  // Another tab (e.g. Verifier or Admin) changed the data -> refresh everything.
+  document.addEventListener("nasoi:update", renderAll);
   U.initDashboard(me, (id) => {
     if (id === "assign") renderAssignForm();
     else renderAll();

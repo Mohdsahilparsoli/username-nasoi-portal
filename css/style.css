@@ -388,3 +388,14 @@ a.stat, button.stat, div.stat { display: block; color: inherit; }
 .icon-btn, .nav-toggle { padding: 7px; }
 .hero .hero-card p { color: var(--muted); }
 .stats { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+
+/* ---------- Multi-role sessions on login page ---------- */
+.active-box { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+#activeList { display: grid; gap: 8px; }
+.active-chip { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--navy); text-decoration: none !important; background: #fff; }
+.active-chip:hover { border-color: var(--primary); background: var(--primary-soft); }
+.active-chip.current { border-color: var(--saffron); }
+.active-chip .ic { color: var(--primary); width: 20px; height: 20px; }
+.active-chip span { display: flex; flex-direction: column; line-height: 1.25; }
+.active-chip small { color: var(--muted); font-size: 12px; }
+.alert a { font-weight: 600; text-decoration: underline; }

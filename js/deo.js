@@ -340,6 +340,8 @@
     renderOverview(); renderProfile(); renderEntries(); renderEarnings(); updateNewCount();
   }
   renderAll();
+  // Another tab (e.g. Verifier or Admin) changed the data -> refresh everything.
+  document.addEventListener("nasoi:update", renderAll);
   U.initDashboard(me, (id) => {
     if (id === "work") renderWork();
     if (id === "new-entry") renderNewEntry();
