@@ -7,7 +7,8 @@
   <meta name="description" content="Demo portal for Data Entry Operators: registration, work assignment, verification and earnings.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,17 +17,18 @@
   <header class="site-header">
     <div class="container nav-wrap">
       <a href="index.html" class="brand">
-        <span class="logo">N</span>
+        <img src="assets/logo.png" alt="NASOI logo" class="logo-img" width="50" height="50">
         <span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span>
       </a>
-      <button class="nav-toggle" aria-label="Open menu">☰</button>
+      <button class="nav-toggle" aria-label="Open menu"><i class="ic" data-icon="menu"></i></button>
       <nav class="site-nav">
         <a href="index.html">Home</a>
         <a href="about.html" class="active">About</a>
         <a href="services.html">Services</a>
-        <a href="login.html" class="btn btn-primary btn-sm">Login / New Registration</a>
+        <a href="login.html" class="btn btn-primary btn-sm"><i class="ic" data-icon="login"></i> Login / New Registration</a>
       </nav>
     </div>
+    <div class="tricolor"></div>
   </header>
 
   <section class="page-banner"><div class="container"><h1>About NASOI</h1><p>Who we are and what this portal does</p></div></section>
@@ -68,7 +70,7 @@
     <div class="container">
       <div class="footer-grid">
         <div>
-          <a href="index.html" class="brand"><span class="logo">N</span><span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span></a>
+          <a href="index.html" class="brand"><img src="assets/logo.png" alt="NASOI logo" class="logo-img" width="50" height="50"><span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span></a>
           <p style="margin-top:12px">A demo portal showing the complete Data Entry Operator workflow: registration, assignment, verification and earnings.</p>
         </div>
         <div>
@@ -87,6 +89,7 @@
     </div>
   </footer>
 
+  <script src="js/icons.js"></script>
   <script src="js/store.js"></script>
   <script src="js/common.js"></script>
 </body>

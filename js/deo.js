@@ -19,15 +19,13 @@
 
   function statCards(s, extra = []) {
     const cards = [
-      { key: "all", label: "Total Entries", value: s.total, cls: "" },
-      { key: "pending", label: "Pending Entries", value: s.pending, cls: "amber" },
-      { key: "approved", label: "Approved Entries", value: s.approved, cls: "green" },
-      { key: "rejected", label: "Rejected Entries", value: s.rejected, cls: "red" },
-      { key: "earn", label: "Total Earnings", value: money(s.earnings), cls: "gold" }
+      { key: "all", label: "Total Entries", value: s.total, cls: "", icon: "clipboard" },
+      { key: "pending", label: "Pending Entries", value: s.pending, cls: "amber", icon: "clock" },
+      { key: "approved", label: "Approved Entries", value: s.approved, cls: "green", icon: "check-circle" },
+      { key: "rejected", label: "Rejected Entries", value: s.rejected, cls: "red", icon: "x-circle" },
+      { key: "earn", label: "Total Earnings", value: money(s.earnings), cls: "gold", icon: "wallet" }
     ].concat(extra);
-    return cards.map((c) =>
-      `<button class="stat ${c.cls}" data-go="${c.key}"><span class="stat-label">${esc(c.label)}</span><span class="stat-value">${c.value}</span></button>`
-    ).join("");
+    return cards.map((c) => U.statCard(Object.assign({ go: c.key }, c))).join("");
   }
 
   document.addEventListener("click", (e) => {
@@ -45,10 +43,10 @@
     const s = Store.statsOf(list);
     const asgs = myAssignments();
     const newCount = asgs.filter(isNew).length;
-    $("#ovStats").innerHTML = statCards(s, [{ key: "asg", label: "New Assignments", value: newCount, cls: "blue" }]);
+    $("#ovStats").innerHTML = statCards(s, [{ key: "asg", label: "New Assignments", value: newCount, cls: "blue", icon: "bell" }]);
 
     $("#newAsgAlert").innerHTML = newCount
-      ? `<div class="alert blue">📌 You have <b>${newCount}</b> new work assignment${newCount > 1 ? "s" : ""} from the admin. <a href="#work">View now →</a></div>`
+      ? `<div class="alert blue">${Icons.svg("bell")} You have <b>${newCount}</b> new work assignment${newCount > 1 ? "s" : ""} from the admin. <a href="#work">View now →</a></div>`
       : "";
 
     $("#ovRecent").innerHTML = list.slice(0, 6).map((e) => `
@@ -60,7 +58,7 @@
       ? active.map((a) => `
           <div style="margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(a.taskType)}</b>${isNew(a) ? '<span class="badge blue">New</span>' : ""}</div>
-            <div class="small muted">📍 ${esc(areaText(a))}</div>
+            <div class="small muted">${Icons.svg("map-pin")} ${esc(areaText(a))}</div>
             ${progressHTML(a)}
           </div>`).join("")
       : '<p class="muted">No area has been assigned to you yet. The Super Admin will assign work shortly.</p>';
@@ -160,17 +158,17 @@
         <div class="assign-card">
           <div class="top"><div><h4>${esc(a.taskType)}</h4><span class="small muted">${esc(a.id)} • assigned ${fmtDate(a.createdAt)}</span></div>${badge}</div>
           <dl class="meta">
-            <dt>Assigned area</dt><dd>${esc(areaText(a))}</dd>
-            <dt>Target</dt><dd>${a.target} entries</dd>
-            <dt>Rate</dt><dd>${money(a.rate)} / approved entry</dd>
-            <dt>Deadline</dt><dd>${fmtDate(a.deadline)}</dd>
+            <dt>${Icons.svg("map-pin")} Area</dt><dd>${esc(areaText(a))}</dd>
+            <dt>${Icons.svg("target")} Target</dt><dd>${a.target} entries</dd>
+            <dt>${Icons.svg("wallet")} Rate</dt><dd>${money(a.rate)} / approved entry</dd>
+            <dt>${Icons.svg("calendar")} Deadline</dt><dd>${fmtDate(a.deadline)}</dd>
           </dl>
           ${a.note ? `<p class="small muted" style="margin:0">${esc(a.note)}</p>` : ""}
           ${progressHTML(a)}
           <div class="small" style="display:flex;gap:8px;flex-wrap:wrap">
             <span class="badge amber">${st.pending} pending</span><span class="badge green">${st.approved} approved</span><span class="badge red">${st.rejected} rejected</span><span class="badge grey">${money(st.earnings)} earned</span>
           </div>
-          ${a.status === "active" ? `<a class="btn btn-primary btn-sm" href="#new-entry" data-asg="${esc(a.id)}">Add entry for this area</a>` : ""}
+          ${a.status === "active" ? `<a class="btn btn-primary btn-sm" href="#new-entry" data-asg="${esc(a.id)}">${Icons.svg("plus")} Add entry for this area</a>` : ""}
         </div>`;
     }).join("") || '<div class="panel"><div class="empty">No work has been assigned yet.</div></div>';
     // Viewing the list marks new assignments as seen
@@ -207,8 +205,8 @@
         <td>${statusBadge(e.status)}</td>
         <td>${e.status === "approved" ? money(e.rate) : '<span class="muted">—</span>'}</td>
         <td><div class="actions">
-          <button class="btn btn-light btn-sm" data-view="${esc(e.id)}">View</button>
-          ${e.status === "rejected" ? `<button class="btn btn-outline btn-sm" data-edit="${esc(e.id)}">Edit &amp; Resubmit</button>` : ""}
+          <button class="btn btn-light btn-sm" data-view="${esc(e.id)}">${Icons.svg("eye")} View</button>
+          ${e.status === "rejected" ? `<button class="btn btn-outline btn-sm" data-edit="${esc(e.id)}">${Icons.svg("edit")} Edit &amp; Resubmit</button>` : ""}
         </div></td>
       </tr>`).join("") || '<tr><td colspan="7" class="empty">No entries found.</td></tr>';
   }
@@ -325,11 +323,11 @@
     const thisMonth = Store.monthlyHistory(list).find((m) => m.key === curKey);
     const potential = s.pending * Store.db.settings.rate;
     $("#erStats").innerHTML = [
-      { label: "This month", value: money(thisMonth ? thisMonth.earnings : 0), cls: "green" },
-      { label: "Pending (if approved)", value: money(potential), cls: "amber" },
-      { label: "Lost to rejection", value: money(s.rejected * Store.db.settings.rate), cls: "red" },
-      { label: "Approval rate", value: (s.approved + s.rejected ? Math.round((s.approved / (s.approved + s.rejected)) * 100) : 0) + "%", cls: "blue" }
-    ].map((c) => `<div class="stat ${c.cls}" style="cursor:default"><span class="stat-label">${c.label}</span><span class="stat-value">${c.value}</span></div>`).join("");
+      { label: "This month", value: money(thisMonth ? thisMonth.earnings : 0), cls: "green", icon: "calendar" },
+      { label: "Pending (if approved)", value: money(potential), cls: "amber", icon: "clock" },
+      { label: "Lost to rejection", value: money(s.rejected * Store.db.settings.rate), cls: "red", icon: "x-circle" },
+      { label: "Approval rate", value: (s.approved + s.rejected ? Math.round((s.approved / (s.approved + s.rejected)) * 100) : 0) + "%", cls: "blue", icon: "trending-up" }
+    ].map(U.statCard).join("");
     const payBadge = { Paid: "green", "In progress": "blue", "Under verification": "amber" };
     $("#erBody").innerHTML = Store.monthlyHistory(list).map((m) => `
       <tr><td><b>${fmtMonth(m.key)}</b></td><td>${m.total}</td><td>${m.approved}</td><td>${m.rejected}</td><td>${m.pending}</td>

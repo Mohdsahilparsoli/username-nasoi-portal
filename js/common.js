@@ -213,9 +213,16 @@
       <div class="detail-grid">${rows}</div>`;
   }
 
+  /* ---------- Stat card (icon + label + value) ---------- */
+  function statCard(o) {
+    const tag = o.href ? "a" : o.go ? "button" : "div";
+    const attrs = (o.href ? ` href="${o.href}"` : "") + (o.go ? ` data-go="${o.go}"` : "") + (tag === "div" ? ' style="cursor:default"' : ' style="text-decoration:none"');
+    return `<${tag} class="stat ${o.cls || ""}"${attrs}><span class="stat-top"><span><span class="stat-label">${esc(o.label)}</span><span class="stat-value">${o.value}</span></span><span class="stat-ic">${Icons.svg(o.icon || "chart")}</span></span></${tag}>`;
+  }
+
   window.UI = {
     $, $$, esc, fmtDate, fmtDateTime, fmtMonth, money, maskAcc, statusBadge,
     toast, openModal, closeModal, guard, initDashboard, fillStates, formData, markErrors, RX,
-    ENTRY_FIELDS, entryFieldsHTML, validateEntry, entryDetailHTML
+    ENTRY_FIELDS, entryFieldsHTML, validateEntry, entryDetailHTML, statCard
   };
 })();

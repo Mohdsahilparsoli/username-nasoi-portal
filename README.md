@@ -1,4 +1,4 @@
-# NASOI – Data Entry Operator Portal (Demo)
+# NASOI – School Data Entry Portal (Demo)
 
 A front-end demo of a data entry workflow built with plain **HTML, CSS and JavaScript** (separate files, no framework, no build step).
 
@@ -27,7 +27,9 @@ Earnings = approved entries × rate (default ₹10 per entry).
 ```
 index.html  about.html  services.html  terms.html
 register.html  login.html  deo.html  verifier.html  admin.html
-css/style.css
+assets/         logo, favicon
+css/style.css   theme based on the logo (blue, saffron, green)
+js/icons.js     SVG line-icon set (no emoji icons)
 js/store.js     data layer (localStorage + seed data)
 js/common.js    shared helpers (formatting, modals, validation, dashboard nav)
 js/register.js  js/login.js  js/deo.js  js/verifier.js  js/admin.js

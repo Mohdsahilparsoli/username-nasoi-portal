@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NASOI – Data Entry Operator Portal (Demo)</title>
-  <meta name="description" content="Demo portal for Data Entry Operators: registration, work assignment, verification and earnings.">
+  <title>NASOI – School Data Entry Portal (Demo)</title>
+  <meta name="description" content="School data entry portal: operator registration, school-wise work assignment, verification and earnings.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,31 +17,33 @@
   <header class="site-header">
     <div class="container nav-wrap">
       <a href="index.html" class="brand">
-        <span class="logo">N</span>
+        <img src="assets/logo.png" alt="NASOI logo" class="logo-img" width="50" height="50">
         <span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span>
       </a>
-      <button class="nav-toggle" aria-label="Open menu">☰</button>
+      <button class="nav-toggle" aria-label="Open menu"><i class="ic" data-icon="menu"></i></button>
       <nav class="site-nav">
         <a href="index.html" class="active">Home</a>
         <a href="about.html">About</a>
         <a href="services.html">Services</a>
-        <a href="login.html" class="btn btn-primary btn-sm">Login / New Registration</a>
+        <a href="login.html" class="btn btn-primary btn-sm"><i class="ic" data-icon="login"></i> Login / New Registration</a>
       </nav>
     </div>
+    <div class="tricolor"></div>
   </header>
 
   <section class="hero">
     <div class="container hero-grid">
       <div>
-        <span class="eyebrow">Work From Home • Data Entry</span>
-        <h1>Digitising academic records, one entry at a time</h1>
-        <p>Register as a Data Entry Operator, get an area assigned by the admin, enter records online and track every entry – pending, approved or rejected – along with your earnings.</p>
+        <span class="eyebrow">School Data Entry Portal</span>
+        <h1>Digitising school records, one entry at a time</h1>
+        <p>Register as a Data Entry Operator, get schools in your area assigned by the admin, enter student records online and track every entry – pending, approved or rejected – along with your earnings.</p>
         <div class="hero-cta">
-          <a href="register.html" class="btn btn-gold">New Registration</a>
-          <a href="login.html" class="btn btn-outline">Login</a>
+          <a href="register.html" class="btn btn-gold"><i class="ic" data-icon="user-plus"></i> New Registration</a>
+          <a href="login.html" class="btn btn-outline"><i class="ic" data-icon="login"></i> Login</a>
         </div>
       </div>
       <div class="hero-card">
+        <img src="assets/logo.png" alt="National Academic Services of India" class="hero-logo" width="150" height="150">
         <h4>Operator dashboard preview</h4>
         <div class="mini-stats">
           <div><span>Total Entries</span><b>49</b></div>
@@ -75,7 +78,7 @@
       </div>
       <div class="grid-3">
         <div class="card">
-          <div class="icon-circle">⌨️</div>
+          <div class="icon-circle"><i class="ic" data-icon="keyboard"></i></div>
           <h3>Data Entry Operator (DEO)</h3>
           <ul class="check-list">
             <li>Profile &amp; banking details</li>
@@ -86,7 +89,7 @@
           </ul>
         </div>
         <div class="card">
-          <div class="icon-circle">✅</div>
+          <div class="icon-circle"><i class="ic" data-icon="clipboard-check"></i></div>
           <h3>Verifier (VR)</h3>
           <ul class="check-list">
             <li>Queue of entries to verify</li>
@@ -96,7 +99,7 @@
           </ul>
         </div>
         <div class="card">
-          <div class="icon-circle">🛡️</div>
+          <div class="icon-circle"><i class="ic" data-icon="shield"></i></div>
           <h3>Super Admin</h3>
           <ul class="check-list">
             <li>View all operators</li>
@@ -113,7 +116,7 @@
     <div class="container">
       <h2>Ready to start?</h2>
       <p class="muted">Registration takes about 5 minutes.</p>
-      <a href="register.html" class="btn btn-primary">Register as Data Entry Operator</a>
+      <a href="register.html" class="btn btn-primary"><i class="ic" data-icon="user-plus"></i> Register as Data Entry Operator</a>
     </div>
   </section>
 
@@ -121,8 +124,8 @@
     <div class="container">
       <div class="footer-grid">
         <div>
-          <a href="index.html" class="brand"><span class="logo">N</span><span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span></a>
-          <p style="margin-top:12px">A demo portal showing the complete Data Entry Operator workflow: registration, assignment, verification and earnings.</p>
+          <a href="index.html" class="brand"><img src="assets/logo.png" alt="NASOI logo" class="logo-img" width="50" height="50"><span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span></a>
+          <p style="margin-top:12px">A school data entry portal (demo) covering the complete operator workflow: registration, school-wise assignment, verification and earnings.</p>
         </div>
         <div>
           <h4>Quick links</h4>
@@ -140,6 +143,7 @@
     </div>
   </footer>
 
+  <script src="js/icons.js"></script>
   <script src="js/store.js"></script>
   <script src="js/common.js"></script>
 </body>

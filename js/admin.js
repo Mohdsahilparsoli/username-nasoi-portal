@@ -13,8 +13,8 @@
   const userName = (id) => { const u = Store.getUser(id); return u ? u.name : id || "—"; };
   let aeFilter = "all";
 
-  function statBox(label, value, cls, go) {
-    return `<${go ? `a href="${go}"` : "div"} class="stat ${cls || ""}" style="text-decoration:none${go ? "" : ";cursor:default"}"><span class="stat-label">${esc(label)}</span><span class="stat-value">${value}</span></${go ? "a" : "div"}>`;
+  function statBox(label, value, cls, go, icon) {
+    return U.statCard({ label, value, cls, href: go, icon });
   }
 
   /* ---------- Overview ---------- */
@@ -23,13 +23,13 @@
     const d = deos();
     const unassigned = d.filter((u) => !Store.assignmentsFor(u.id).length);
     $("#ovStats").innerHTML =
-      statBox("Total Operators", d.length, "", "#operators") +
-      statBox("Awaiting assignment", unassigned.length, "blue", "#operators") +
-      statBox("Total Entries", s.total, "", "#all-entries") +
-      statBox("Pending", s.pending, "amber", "#all-entries") +
-      statBox("Approved", s.approved, "green", "#all-entries") +
-      statBox("Rejected", s.rejected, "red", "#all-entries") +
-      statBox("Total Payable", money(s.earnings), "gold", "#payouts");
+      statBox("Total Operators", d.length, "", "#operators", "users") +
+      statBox("Awaiting assignment", unassigned.length, "blue", "#operators", "bell") +
+      statBox("Total Entries", s.total, "", "#all-entries", "clipboard") +
+      statBox("Pending", s.pending, "amber", "#all-entries", "clock") +
+      statBox("Approved", s.approved, "green", "#all-entries", "check-circle") +
+      statBox("Rejected", s.rejected, "red", "#all-entries", "x-circle") +
+      statBox("Total Payable", money(s.earnings), "gold", "#payouts", "wallet");
 
     const recent = d.slice().sort((a, b) => (a.joinedAt < b.joinedAt ? 1 : -1)).slice(0, 6);
     $("#ovNew").innerHTML = recent.map((u) => {
@@ -58,8 +58,8 @@
         <td>${money(s.earnings)}</td>
         <td>${u.status === "blocked" ? '<span class="badge red">Blocked</span>' : '<span class="badge green">Active</span>'}</td>
         <td><div class="actions">
-          <button class="btn btn-light btn-sm" data-op="${esc(u.id)}">View</button>
-          <a href="#assign" class="btn btn-primary btn-sm" data-assign-to="${esc(u.id)}">Assign</a>
+          <button class="btn btn-light btn-sm" data-op="${esc(u.id)}">${Icons.svg("eye")} View</button>
+          <a href="#assign" class="btn btn-primary btn-sm" data-assign-to="${esc(u.id)}">${Icons.svg("target")} Assign</a>
         </div></td></tr>`;
     }).join("") || '<tr><td colspan="9" class="empty">No operators found.</td></tr>';
   }
@@ -142,7 +142,7 @@
       return `<tr>
         <td><b>${esc(a.id)}</b><span class="small muted" style="display:block">${fmtDate(a.createdAt)}</span></td>
         <td>${esc(userName(a.deoId))}<span class="small muted" style="display:block">${esc(a.deoId)}</span></td>
-        <td>${esc(a.taskType)}<span class="small muted" style="display:block">📍 ${esc(a.area.village)}, ${esc(a.area.block)}, ${esc(a.area.district)}</span></td>
+        <td>${esc(a.taskType)}<span class="small muted" style="display:block">${Icons.svg("map-pin")} ${esc(a.area.village)}, ${esc(a.area.block)}, ${esc(a.area.district)}</span></td>
         <td style="min-width:140px"><div class="progress-label"><span>${es.length}/${a.target}</span><span>${pct}%</span></div><div class="progress"><span style="width:${pct}%"></span></div></td>
         <td>${money(a.rate)}</td><td class="small">${fmtDate(a.deadline)}</td><td>${st}</td>
         <td>${a.status === "active" ? `<button class="btn btn-light btn-sm" data-complete="${esc(a.id)}">Mark complete</button>` : `<button class="btn btn-light btn-sm" data-reopen="${esc(a.id)}">Reopen</button>`}</td>
@@ -188,7 +188,7 @@
       return `<tr><td>${esc(u.name)} <span class="small muted">(${esc(u.id)})</span></td><td>${esc(b.bankName)}</td><td>${maskAcc(b.account)}</td><td>${esc(b.ifsc)}</td>
         <td>${m.approved}</td><td><b>${money(m.earnings)}</b></td><td><span class="badge ${pb}">${m.payout}</span></td></tr>`;
     }).join("");
-    $("#poStats").innerHTML = statBox("Operators to pay", ops, "blue") + statBox("Approved entries", count, "green") + statBox("Total amount", money(total), "gold");
+    $("#poStats").innerHTML = statBox("Operators to pay", ops, "blue", "", "users") + statBox("Approved entries", count, "green", "", "check-circle") + statBox("Total amount", money(total), "gold", "", "wallet");
     $("#poBody").innerHTML = rows || '<tr><td colspan="7" class="empty">No approved entries in this month.</td></tr>';
   }
   $("#poMonth").addEventListener("change", renderPayouts);

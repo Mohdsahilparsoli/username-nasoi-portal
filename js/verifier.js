@@ -20,12 +20,12 @@
     const pending = all.filter((e) => e.status === "pending");
     const today = new Date().toDateString();
     const cards = [
-      { label: "Pending to verify", value: pending.length, cls: "amber" },
-      { label: "Approved by me", value: mine.filter((e) => e.status === "approved").length, cls: "green" },
-      { label: "Rejected by me", value: mine.filter((e) => e.status === "rejected").length, cls: "red" },
-      { label: "Verified today", value: mine.filter((e) => e.verifiedAt && new Date(e.verifiedAt).toDateString() === today).length, cls: "blue" }
+      { label: "Pending to verify", value: pending.length, cls: "amber", icon: "clock" },
+      { label: "Approved by me", value: mine.filter((e) => e.status === "approved").length, cls: "green", icon: "check-circle" },
+      { label: "Rejected by me", value: mine.filter((e) => e.status === "rejected").length, cls: "red", icon: "x-circle" },
+      { label: "Verified today", value: mine.filter((e) => e.verifiedAt && new Date(e.verifiedAt).toDateString() === today).length, cls: "blue", icon: "clipboard-check" }
     ];
-    $("#vStats").innerHTML = cards.map((c) => `<div class="stat ${c.cls}" style="cursor:default"><span class="stat-label">${c.label}</span><span class="stat-value">${c.value}</span></div>`).join("");
+    $("#vStats").innerHTML = cards.map(U.statCard).join("");
     $("#pendCount").textContent = pending.length;
     $("#pendCount").hidden = !pending.length;
 
@@ -45,11 +45,11 @@
         <td>${esc(e.data.studentName)}<span class="small muted" style="display:block">${esc(e.data.className)} • Roll ${esc(e.data.rollNo)} • ${esc(e.data.percentage)}%</span></td>
         <td class="small">${fmtDateTime(e.submittedAt)}</td>
         <td><div class="actions">
-          <button class="btn btn-light btn-sm" data-open="${esc(e.id)}">View</button>
-          <button class="btn btn-primary btn-sm" data-approve="${esc(e.id)}">Approve</button>
-          <button class="btn btn-danger btn-sm" data-reject="${esc(e.id)}">Reject</button>
+          <button class="btn btn-light btn-sm" data-open="${esc(e.id)}">${Icons.svg("eye")} View</button>
+          <button class="btn btn-primary btn-sm" data-approve="${esc(e.id)}">${Icons.svg("check-circle")} Approve</button>
+          <button class="btn btn-danger btn-sm" data-reject="${esc(e.id)}">${Icons.svg("x-circle")} Reject</button>
         </div></td>
-      </tr>`).join("") || '<tr><td colspan="5" class="empty">🎉 Nothing pending. All entries are verified.</td></tr>';
+      </tr>`).join("") || '<tr><td colspan="5" class="empty">' + Icons.svg("check-circle") + ' Nothing pending. All entries are verified.</td></tr>';
   }
   $("#vDeo").addEventListener("change", renderQueue);
   $("#vSearch").addEventListener("input", renderQueue);
