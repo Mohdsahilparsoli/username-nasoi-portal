@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEO Dashboard – NASOI (Demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dash">
+  <header class="dash-top">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <a href="index.html" class="brand">
+      <span class="logo">N</span>
+      <span class="brand-text"><strong>NASOI</strong><small>Data Entry Operator Panel</small></span>
+    </a>
+    <span class="role-chip">DEO</span>
+    <div class="top-user">
+      <div class="who"><b data-user-name></b><small data-user-id></small></div>
+      <a href="#" class="btn btn-light btn-sm" data-logout>Logout</a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav class="side-nav">
+      <a href="#overview">🏠 Dashboard</a>
+      <a href="#profile">👤 Profile &amp; Bank</a>
+      <a href="#work">📍 Work Status <span class="count" id="newAsgCount" hidden></span></a>
+      <a href="#entries">📋 My Entries</a>
+      <a href="#new-entry">➕ New Add Entry</a>
+      <a href="#earnings">💰 Earnings &amp; History</a>
+      <div class="side-label">Account</div>
+      <a href="terms.html" target="_blank">📄 Terms &amp; Conditions</a>
+      <a href="#" data-logout>🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <main class="dash-main">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="dash-section" id="overview">
+      <div class="sec-head">
+        <div><h2>Welcome, <span data-user-name></span></h2><p>Here is the status of your data entry work.</p></div>
+        <a href="#new-entry" class="btn btn-primary">➕ New Entry</a>
+      </div>
+      <div id="newAsgAlert"></div>
+      <div class="stats" id="ovStats"></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head"><h3>Recent entries</h3><a href="#entries" class="small">View all →</a></div>
+          <div class="table-wrap"><table><thead><tr><th>Entry ID</th><th>Student</th><th>Date</th><th>Status</th></tr></thead><tbody id="ovRecent"></tbody></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Assigned area</h3><a href="#work" class="small">Details →</a></div>
+          <div class="panel-body" id="ovArea"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROFILE ============ -->
+    <section class="dash-section" id="profile" hidden>
+      <div class="sec-head"><div><h2>Profile</h2><p>Your personal and banking details.</p></div></div>
+      <div class="panel">
+        <div class="panel-head"><h3>Personal details</h3><span class="badge green" id="pfStatus">Active</span></div>
+        <div class="panel-body"><div class="detail-grid" id="pfPersonal"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Contact details</h3><button class="btn btn-outline btn-sm" id="editContactBtn">Edit</button></div>
+        <div class="panel-body">
+          <div class="detail-grid" id="pfContact"></div>
+          <form id="contactForm" class="form-grid" hidden novalidate style="margin-top:4px">
+            <div class="field"><label for="c_mobile">Mobile Number</label><input id="c_mobile" name="mobile" type="tel" maxlength="10"><span class="err" data-err="mobile"></span></div>
+            <div class="field"><label for="c_alt">Alternate Mobile</label><input id="c_alt" name="altMobile" type="tel" maxlength="10"><span class="err" data-err="altMobile"></span></div>
+            <div class="field full"><label for="c_email">Email ID</label><input id="c_email" name="email" type="email"><span class="err" data-err="email"></span></div>
+            <div class="field full"><label for="c_address">Full Address</label><textarea id="c_address" name="address"></textarea><span class="err" data-err="address"></span></div>
+            <div class="field full" style="flex-direction:row;gap:10px"><button class="btn btn-primary" type="submit">Save</button><button class="btn btn-light" type="button" data-cancel>Cancel</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Banking details</h3><button class="btn btn-outline btn-sm" id="editBankBtn">Update</button></div>
+        <div class="panel-body">
+          <div class="detail-grid" id="pfBank"></div>
+          <form id="bankForm" class="form-grid" hidden novalidate style="margin-top:4px">
+            <div class="field"><label for="b_bank">Bank Name</label><input id="b_bank" name="bankName" type="text"><span class="err" data-err="bankName"></span></div>
+            <div class="field"><label for="b_holder">Account Holder Name</label><input id="b_holder" name="holder" type="text" class="upper"><span class="err" data-err="holder"></span></div>
+            <div class="field"><label for="b_acc">Account Number</label><input id="b_acc" name="account" type="password" inputmode="numeric" maxlength="18" autocomplete="off"><span class="err" data-err="account"></span></div>
+            <div class="field"><label for="b_acc2">Confirm Account Number</label><input id="b_acc2" name="account2" type="text" inputmode="numeric" maxlength="18" autocomplete="off"><span class="err" data-err="account2"></span></div>
+            <div class="field"><label for="b_ifsc">IFSC Code</label><input id="b_ifsc" name="ifsc" type="text" class="upper" maxlength="11"><span class="err" data-err="ifsc"></span></div>
+            <div class="field full" style="flex-direction:row;gap:10px"><button class="btn btn-primary" type="submit">Save bank details</button><button class="btn btn-light" type="button" data-cancel>Cancel</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Change password</h3></div>
+        <form class="panel-body form-grid cols-3" id="pwForm" novalidate>
+          <div class="field"><label for="pw_old">Current password</label><input id="pw_old" name="old" type="password"><span class="err" data-err="old"></span></div>
+          <div class="field"><label for="pw_new">New password</label><input id="pw_new" name="pw" type="password"><span class="err" data-err="pw"></span></div>
+          <div class="field"><label for="pw_new2">Confirm new password</label><input id="pw_new2" name="pw2" type="password"><span class="err" data-err="pw2"></span></div>
+          <div class="field full"><button class="btn btn-primary" type="submit" style="align-self:flex-start">Change password</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ WORK STATUS ============ -->
+    <section class="dash-section" id="work" hidden>
+      <div class="sec-head"><div><h2>Work Status</h2><p>Areas and tasks assigned to you by the Super Admin.</p></div></div>
+      <div class="stats" id="wkStats"></div>
+      <div class="assign-grid" id="wkList"></div>
+    </section>
+
+    <!-- ============ ENTRIES ============ -->
+    <section class="dash-section" id="entries" hidden>
+      <div class="sec-head">
+        <div><h2>My Entries</h2><p>Every entry you submitted and its verification status.</p></div>
+        <a href="#new-entry" class="btn btn-primary">➕ New Entry</a>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="filter-tabs" id="enFilter">
+            <button data-f="all" class="active">All</button>
+            <button data-f="pending">Pending</button>
+            <button data-f="approved">Approved</button>
+            <button data-f="rejected">Rejected</button>
+          </div>
+          <input type="search" id="enSearch" placeholder="Search by ID / student name" style="max-width:260px">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Entry ID</th><th>Student / Record</th><th>Assignment</th><th>Submitted</th><th>Status</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="enBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ NEW ENTRY ============ -->
+    <section class="dash-section" id="new-entry" hidden>
+      <div class="sec-head"><div><h2>New Add Entry</h2><p>Enter one record exactly as it appears in the source document.</p></div></div>
+      <div id="neBlocked"></div>
+      <form class="panel" id="entryForm" novalidate>
+        <div class="panel-head">
+          <h3>Record details</h3>
+          <span class="small muted">Rate: <b id="neRate">₹10</b> per approved entry</span>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid" style="margin-bottom:16px">
+            <div class="field full"><label for="ne_asg">Assignment <span class="req">*</span></label><select id="ne_asg" name="assignmentId"></select><span class="err" data-err="assignmentId"></span></div>
+          </div>
+          <div class="form-grid" id="neFields"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+            <button class="btn btn-primary" type="submit">Submit Entry</button>
+            <button class="btn btn-light" type="reset">Clear</button>
+            <button class="btn btn-outline" type="button" id="neSample">Fill sample</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ EARNINGS ============ -->
+    <section class="dash-section" id="earnings" hidden>
+      <div class="sec-head"><div><h2>Earnings &amp; Monthly History</h2><p>You are paid for approved entries only.</p></div></div>
+      <div class="earn-hero">
+        <div><small>Total earnings (approved entries)</small><div class="big" id="erTotal">₹0</div><small id="erSub"></small></div>
+        <div style="text-align:right"><small>Payout credited to</small><div id="erBank" style="font-weight:600"></div><small id="erWindow"></small></div>
+      </div>
+      <div class="stats" id="erStats"></div>
+      <div class="panel">
+        <div class="panel-head"><h3>Monthly history</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Month</th><th>Total</th><th>Approved</th><th>Rejected</th><th>Pending</th><th>Earnings</th><th>Payout</th></tr></thead>
+            <tbody id="erBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- View entry modal -->
+  <div class="modal" id="viewModal">
+    <div class="modal-box">
+      <button class="modal-close" data-close aria-label="Close">×</button>
+      <h3>Entry details</h3>
+      <div id="viewBody"></div>
+      <div class="modal-actions" id="viewActions"></div>
+    </div>
+  </div>
+
+  <!-- Edit (resubmit) modal -->
+  <div class="modal" id="editModal">
+    <form class="modal-box" id="editForm" novalidate>
+      <button class="modal-close" type="button" data-close aria-label="Close">×</button>
+      <h3>Correct &amp; resubmit <span id="editId"></span></h3>
+      <div class="alert red" id="editReason"></div>
+      <div class="form-grid" id="editFields"></div>
+      <div class="modal-actions">
+        <button class="btn btn-light" type="button" data-close>Cancel</button>
+        <button class="btn btn-primary" type="submit">Resubmit for verification</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/deo.js"></script>
+</body>
+</html>

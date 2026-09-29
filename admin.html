@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin – NASOI (Demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dash">
+  <header class="dash-top">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <a href="index.html" class="brand">
+      <span class="logo">N</span>
+      <span class="brand-text"><strong>NASOI</strong><small>Super Admin Panel</small></span>
+    </a>
+    <span class="role-chip">ADMIN</span>
+    <div class="top-user">
+      <div class="who"><b data-user-name></b><small data-user-id></small></div>
+      <a href="#" class="btn btn-light btn-sm" data-logout>Logout</a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav class="side-nav">
+      <a href="#overview">📊 Overview</a>
+      <a href="#operators">👥 Operators (DEO)</a>
+      <a href="#assign">📌 Assign Work</a>
+      <a href="#assignments">🗂️ All Assignments</a>
+      <a href="#all-entries">📋 All Entries</a>
+      <a href="#payouts">💰 Payouts</a>
+      <a href="#settings">⚙️ Settings</a>
+      <div class="side-label">Account</div>
+      <a href="#" data-logout>🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <main class="dash-main">
+    <!-- OVERVIEW -->
+    <section class="dash-section" id="overview">
+      <div class="sec-head"><div><h2>Overview</h2><p>Everything happening on the portal at a glance.</p></div><a href="#assign" class="btn btn-primary">📌 Assign Work</a></div>
+      <div class="stats" id="ovStats"></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head"><h3>Newly registered operators</h3><a href="#operators" class="small">All →</a></div>
+          <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>District</th><th>Work</th></tr></thead><tbody id="ovNew"></tbody></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Top operators</h3></div>
+          <div class="table-wrap"><table><thead><tr><th>Operator</th><th>Approved</th><th>Earnings</th></tr></thead><tbody id="ovTop"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPERATORS -->
+    <section class="dash-section" id="operators" hidden>
+      <div class="sec-head"><div><h2>Data Entry Operators</h2><p>All registered DEOs and their work summary.</p></div>
+        <input type="search" id="opSearch" placeholder="Search ID / name / mobile" style="max-width:260px"></div>
+      <div class="panel"><div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Name</th><th>Mobile</th><th>Location</th><th>Assignments</th><th>Entries (P/A/R)</th><th>Earnings</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="opBody"></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- ASSIGN -->
+    <section class="dash-section" id="assign" hidden>
+      <div class="sec-head"><div><h2>Assign Work</h2><p>Choose an operator and assign the area and type of data entry.</p></div></div>
+      <form class="panel" id="asgForm" novalidate>
+        <div class="panel-head"><h3>New assignment</h3></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field full"><label for="a_deo">Data Entry Operator <span class="req">*</span></label><select id="a_deo" name="deoId"></select><span class="err" data-err="deoId"></span></div>
+            <div class="field"><label for="a_task">Type of data entry <span class="req">*</span></label><select id="a_task" name="taskType"></select><span class="err" data-err="taskType"></span></div>
+            <div class="field"><label for="a_target">Target (no. of entries) <span class="req">*</span></label><input id="a_target" name="target" type="number" min="1" max="10000" value="50"><span class="err" data-err="target"></span></div>
+            <div class="field"><label for="a_state">State <span class="req">*</span></label><select id="a_state" name="state"></select><span class="err" data-err="state"></span></div>
+            <div class="field"><label for="a_district">District <span class="req">*</span></label><select id="a_district" name="district"></select><span class="err" data-err="district"></span></div>
+            <div class="field"><label for="a_block">Block / Tehsil <span class="req">*</span></label><input id="a_block" name="block" type="text" maxlength="40"><span class="err" data-err="block"></span></div>
+            <div class="field"><label for="a_village">Village / Ward <span class="req">*</span></label><input id="a_village" name="village" type="text" maxlength="40"><span class="err" data-err="village"></span></div>
+            <div class="field"><label for="a_rate">Rate per approved entry (₹) <span class="req">*</span></label><input id="a_rate" name="rate" type="number" min="1" max="1000"><span class="err" data-err="rate"></span></div>
+            <div class="field"><label for="a_deadline">Deadline <span class="req">*</span></label><input id="a_deadline" name="deadline" type="date"><span class="err" data-err="deadline"></span></div>
+            <div class="field full"><label for="a_note">Instructions for the operator</label><textarea id="a_note" name="note" maxlength="300" placeholder="e.g. Enter Class 10 records from the school register"></textarea></div>
+          </div>
+          <div style="margin-top:18px"><button class="btn btn-primary" type="submit">Assign work</button></div>
+        </div>
+      </form>
+    </section>
+
+    <!-- ASSIGNMENTS -->
+    <section class="dash-section" id="assignments" hidden>
+      <div class="sec-head"><div><h2>All Assignments</h2><p>Progress of every area assigned.</p></div></div>
+      <div class="panel"><div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Operator</th><th>Task / Area</th><th>Progress</th><th>Rate</th><th>Deadline</th><th>Status</th><th></th></tr></thead>
+        <tbody id="asBody"></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- ALL ENTRIES -->
+    <section class="dash-section" id="all-entries" hidden>
+      <div class="sec-head"><div><h2>All Entries</h2><p>Every entry submitted on the portal.</p></div></div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="filter-tabs" id="aeFilter">
+            <button data-f="all" class="active">All</button><button data-f="pending">Pending</button><button data-f="approved">Approved</button><button data-f="rejected">Rejected</button>
+          </div>
+          <div class="toolbar"><select id="aeDeo"></select><input type="search" id="aeSearch" placeholder="Search ID / student"></div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Entry ID</th><th>Operator</th><th>Student</th><th>Submitted</th><th>Status</th><th>Verified by</th><th></th></tr></thead>
+          <tbody id="aeBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- PAYOUTS -->
+    <section class="dash-section" id="payouts" hidden>
+      <div class="sec-head"><div><h2>Payouts</h2><p>Month-wise amount due to each operator (approved entries × rate).</p></div>
+        <select id="poMonth" style="max-width:200px"></select></div>
+      <div class="stats" id="poStats"></div>
+      <div class="panel"><div class="table-wrap"><table>
+        <thead><tr><th>Operator</th><th>Bank</th><th>Account</th><th>IFSC</th><th>Approved</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="poBody"></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="dash-section" id="settings" hidden>
+      <div class="sec-head"><div><h2>Settings</h2></div></div>
+      <form class="panel" id="setForm" novalidate>
+        <div class="panel-head"><h3>Payment settings</h3></div>
+        <div class="panel-body form-grid">
+          <div class="field"><label for="s_rate">Default rate per approved entry (₹)</label><input id="s_rate" name="rate" type="number" min="1" max="1000"><span class="err" data-err="rate"></span><span class="hint">Used as the default for new assignments.</span></div>
+          <div class="field"><label for="s_window">Payout window</label><input id="s_window" name="payoutWindow" type="text" maxlength="60"></div>
+          <div class="field full"><button class="btn btn-primary" type="submit" style="align-self:flex-start">Save settings</button></div>
+        </div>
+      </form>
+      <div class="panel">
+        <div class="panel-head"><h3>Demo data</h3></div>
+        <div class="panel-body">
+          <p class="muted">All data lives in this browser's local storage. Reset to restore the original sample operators, assignments and entries.</p>
+          <button class="btn btn-danger" id="resetBtn" type="button">Reset demo data</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Operator detail modal -->
+  <div class="modal" id="opModal">
+    <div class="modal-box">
+      <button class="modal-close" data-close aria-label="Close">×</button>
+      <h3 id="opTitle">Operator</h3>
+      <div id="opDetail"></div>
+      <div class="modal-actions" id="opActions"></div>
+    </div>
+  </div>
+
+  <!-- Entry detail modal -->
+  <div class="modal" id="entryModal">
+    <div class="modal-box">
+      <button class="modal-close" data-close aria-label="Close">×</button>
+      <h3>Entry details</h3>
+      <div id="entryBody"></div>
+      <div class="modal-actions"><button class="btn btn-light" data-close>Close</button></div>
+    </div>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

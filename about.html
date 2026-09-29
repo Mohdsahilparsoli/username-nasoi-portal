@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About – NASOI (Demo)</title>
+  <meta name="description" content="Demo portal for Data Entry Operators: registration, work assignment, verification and earnings.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="demo-strip">Demo project – sample data only. Not a real organisation. No fees are collected.</div>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand">
+        <span class="logo">N</span>
+        <span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu">☰</button>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="about.html" class="active">About</a>
+        <a href="services.html">Services</a>
+        <a href="login.html" class="btn btn-primary btn-sm">Login / New Registration</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="page-banner"><div class="container"><h1>About NASOI</h1><p>Who we are and what this portal does</p></div></section>
+
+  <section class="section">
+    <div class="container two-col">
+      <div>
+        <h2>Our mission</h2>
+        <p>National Academic Services of India (NASOI) is a demo project that models how academic records – student results, school surveys and scholarship applications – can be digitised by a distributed team of Data Entry Operators working from home.</p>
+        <p>Every record entered by an operator is checked by a Verifier before it is accepted. Operators are paid only for verified, accurate entries, which keeps data quality high and payments fair and transparent.</p>
+        <h3 style="margin-top:24px">What makes the process reliable</h3>
+        <ul class="check-list">
+          <li>Area-wise work allocation by the Super Admin</li>
+          <li>Two-level process: entry by DEO, check by Verifier</li>
+          <li>Clear rejection reasons so operators can correct mistakes</li>
+          <li>Live earnings and month-wise payout history</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Eligibility</h3>
+        <ul class="check-list">
+          <li>Class 10th (Matriculation) passed from a recognised board</li>
+          <li>Own Android mobile / tablet / laptop / desktop</li>
+          <li>Reliable internet connection</li>
+          <li>A bank account in your own name for payouts</li>
+        </ul>
+        <h3 style="margin-top:20px">Work terms</h3>
+        <ul class="check-list">
+          <li>Part-time, contractual, work from home</li>
+          <li>Entries only through this portal</li>
+          <li>Payout between 15th – 25th of each month</li>
+        </ul>
+        <a href="register.html" class="btn btn-primary btn-block" style="margin-top:12px">Register now</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a href="index.html" class="brand"><span class="logo">N</span><span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span></a>
+          <p style="margin-top:12px">A demo portal showing the complete Data Entry Operator workflow: registration, assignment, verification and earnings.</p>
+        </div>
+        <div>
+          <h4>Quick links</h4>
+          <ul><li><a href="about.html">About</a></li><li><a href="services.html">Services</a></li><li><a href="terms.html">Terms &amp; Conditions</a></li></ul>
+        </div>
+        <div>
+          <h4>Portal</h4>
+          <ul><li><a href="login.html?role=deo">DEO Login</a></li><li><a href="login.html?role=verifier">Verifier Login</a></li><li><a href="login.html?role=admin">Admin Login</a></li><li><a href="register.html">New Registration</a></li></ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year"></span> NASOI Demo</span>
+        <span class="demo-note">Demo only – data is stored in your browser</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/store.js"></script>
+  <script src="js/common.js"></script>
+</body>
+</html>

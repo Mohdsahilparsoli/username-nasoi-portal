@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – NASOI (Demo)</title>
+  <meta name="description" content="Demo portal for Data Entry Operators: registration, work assignment, verification and earnings.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="demo-strip">Demo project – sample data only. Not a real organisation. No fees are collected.</div>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand">
+        <span class="logo">N</span>
+        <span class="brand-text"><strong>NASOI</strong><small>National Academic Services of India</small></span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu">☰</button>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="services.html">Services</a>
+        <a href="login.html" class="btn btn-primary btn-sm">Login / New Registration</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-wrap">
+    <div class="auth-card">
+      <div class="tabs" role="tablist">
+        <button type="button" data-role="deo" class="active">DEO Login</button>
+        <button type="button" data-role="verifier">Verifier (VR)</button>
+        <button type="button" data-role="admin">Admin</button>
+      </div>
+      <form class="form-body" id="loginForm" novalidate>
+        <h2 id="loginTitle" style="font-size:20px">Data Entry Operator Login</h2>
+        <div class="form-error" id="loginError" hidden></div>
+        <div class="field" style="margin-bottom:14px">
+          <label for="loginId">Registration ID / Mobile No. / Email ID</label>
+          <input id="loginId" name="loginId" type="text" autocomplete="username" placeholder="e.g. DEO126 or 9717323761">
+        </div>
+        <div class="field" style="margin-bottom:18px">
+          <label for="password">Password</label>
+          <div class="pw-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter password">
+            <button type="button" id="togglePw">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+        <p class="small muted" id="regLink" style="text-align:center;margin:14px 0 0">New user? <a href="register.html">Register as Data Entry Operator</a></p>
+
+        <div class="demo-creds">
+          <b>Demo login</b> <button type="button" class="btn btn-light btn-sm" id="useDemo" style="float:right">Use</button><br>
+          ID: <code id="demoId">DEO126</code> &nbsp; Password: <code id="demoPw">Abcd@2026</code>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/store.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

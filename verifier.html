@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifier Dashboard – NASOI (Demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%230b6b3a%27 stroke=%27%23f4b400%27 stroke-width=%272%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 text-anchor=%27middle%27 fill=%27white%27 font-family=%27Arial%27 font-weight=%27bold%27%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dash">
+  <header class="dash-top">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <a href="index.html" class="brand">
+      <span class="logo">N</span>
+      <span class="brand-text"><strong>NASOI</strong><small>Verifier Panel</small></span>
+    </a>
+    <span class="role-chip">VR</span>
+    <div class="top-user">
+      <div class="who"><b data-user-name></b><small data-user-id></small></div>
+      <a href="#" class="btn btn-light btn-sm" data-logout>Logout</a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav class="side-nav">
+      <a href="#verify">🔍 Verify Data <span class="count" id="pendCount"></span></a>
+      <a href="#approved">✅ Approved</a>
+      <a href="#rejected">❌ Rejected</a>
+      <a href="#profile">👤 Profile</a>
+      <div class="side-label">Account</div>
+      <a href="#" data-logout>🚪 Logout</a>
+    </nav>
+  </aside>
+
+  <main class="dash-main">
+    <section class="dash-section" id="verify">
+      <div class="sec-head"><div><h2>Verify Data</h2><p>Check each entry against the source and approve or reject it with a reason.</p></div></div>
+      <div class="stats" id="vStats"></div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Pending verification</h3>
+          <div class="toolbar">
+            <select id="vDeo"><option value="">All operators</option></select>
+            <input type="search" id="vSearch" placeholder="Search ID / student">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Entry ID</th><th>Operator</th><th>Student / Record</th><th>Submitted</th><th>Actions</th></tr></thead>
+            <tbody id="vBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="dash-section" id="approved" hidden>
+      <div class="sec-head"><div><h2>Approved entries</h2><p>Entries you have verified and approved.</p></div></div>
+      <div class="panel"><div class="table-wrap"><table>
+        <thead><tr><th>Entry ID</th><th>Operator</th><th>Student</th><th>Approved on</th><th></th></tr></thead>
+        <tbody id="aBody"></tbody>
+      </table></div></div>
+    </section>
+
+    <section class="dash-section" id="rejected" hidden>
+      <div class="sec-head"><div><h2>Rejected entries</h2><p>Entries you rejected, with the reason shared with the operator.</p></div></div>
+      <div class="panel"><div class="table-wrap"><table>
+        <thead><tr><th>Entry ID</th><th>Operator</th><th>Student</th><th>Reason</th><th>Rejected on</th><th></th></tr></thead>
+        <tbody id="rBody"></tbody>
+      </table></div></div>
+    </section>
+
+    <section class="dash-section" id="profile" hidden>
+      <div class="sec-head"><div><h2>Profile</h2></div></div>
+      <div class="panel"><div class="panel-head"><h3>Verifier details</h3><span class="badge green">Active</span></div>
+        <div class="panel-body"><div class="detail-grid" id="pfBody"></div></div></div>
+    </section>
+  </main>
+
+  <!-- Verify modal -->
+  <div class="modal" id="verifyModal">
+    <div class="modal-box">
+      <button class="modal-close" data-close aria-label="Close">×</button>
+      <h3>Verify entry</h3>
+      <div id="vmBody"></div>
+      <div id="rejectBox" hidden style="margin-top:18px">
+        <div class="field">
+          <label for="rReason">Reason for rejection <span class="req">*</span></label>
+          <select id="rReasonPick"></select>
+          <textarea id="rReason" placeholder="Write the reason the operator will see"></textarea>
+          <span class="err" id="rErr"></span>
+        </div>
+      </div>
+      <div class="modal-actions" id="vmActions">
+        <button class="btn btn-light" data-close>Close</button>
+        <button class="btn btn-danger" id="rejectBtn">Reject</button>
+        <button class="btn btn-primary" id="approveBtn">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/verifier.js"></script>
+</body>
+</html>
