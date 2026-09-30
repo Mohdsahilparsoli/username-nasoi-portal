@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Brand palette taken from the NASOI logo (blue, saffron, green). */
+@theme {
+  --font-sans: var(--font-poppins), system-ui, sans-serif;
+
+  --color-primary: #1c3f94;
+  --color-primary-dark: #122b6b;
+  --color-primary-soft: #e9effb;
+  --color-navy: #10265e;
+  --color-saffron: #f28a1e;
+  --color-saffron-dark: #d9700a;
+  --color-saffron-soft: #fff2e3;
+  --color-success: #138a3d;
+  --color-success-soft: #e6f5ea;
+  --color-danger: #c62828;
+  --color-danger-soft: #fdecea;
+  --color-warning: #b26a00;
+  --color-warning-soft: #fff3e0;
+  --color-info: #1f6feb;
+  --color-info-soft: #e8f0fe;
+  --color-ink: #1c2430;
+  --color-muted: #5d6b7a;
+  --color-line: #e2e8f0;
+  --color-canvas: #f5f7fa;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { background: var(--color-canvas); color: var(--color-ink); }
+  h1, h2, h3, h4 { color: var(--color-navy); }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+}
+
+/* Tricolour stripe used under headers */
+.tricolor {
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-saffron) 0 33.3%, #fff 33.3% 66.6%, var(--color-success) 66.6%);
+  box-shadow: 0 1px 0 var(--color-line);
+}
