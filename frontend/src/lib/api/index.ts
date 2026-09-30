@@ -27,21 +27,7 @@ function genPassword(name: string) {
 /* Auth                                                               */
 /* ------------------------------------------------------------------ */
 
-/**
- * POST /api/v1/auth/login
- * Single login for every account. The role comes from the account itself,
- * and the client opens that role's dashboard.
- */
-export async function login(loginId: string, password: string): Promise<User> {
-  await wait(400);
-  const key = loginId.trim().toLowerCase();
-  const u = getDb().users.find(
-    (x) => x.id.toLowerCase() === key || x.mobile === key || x.email.toLowerCase() === key,
-  );
-  if (!u || u.password !== password) throw new ApiError("Invalid ID / Mobile / Email or Password.");
-  if (u.status === "blocked") throw new ApiError("This account has been blocked by the admin.");
-  return strip(clone(u));
-}
+// Login, logout, refresh and change-password use the real API: see ./auth.ts
 
 /** POST /api/v1/auth/register */
 export async function registerDeo(input: RegisterInput): Promise<{ user: User; password: string }> {
@@ -82,14 +68,6 @@ export async function updateUser(id: string, patch: Partial<User>): Promise<User
   return strip(clone(u));
 }
 
-/** POST /api/v1/users/me/password */
-export async function changePassword(id: string, oldPw: string, newPw: string) {
-  await wait(300);
-  const u = getDb().users.find((x) => x.id === id);
-  if (!u || u.password !== oldPw) throw new ApiError("Current password is incorrect.");
-  u.password = newPw;
-  saveDb();
-}
 
 /** GET /api/v1/admin/users?role=deo */
 export async function listUsers(role: Role): Promise<User[]> {

@@ -7,9 +7,10 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useAssignments } from "@/features/assignments/hooks";
 import { useEntries } from "@/features/entries/hooks";
+import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
 import { cn, initials } from "@/lib/utils";
 import { useSessionStore, type SessionInfo } from "@/stores/session-store";
@@ -70,13 +71,40 @@ export function DashboardShell({ role, children }: { role: Role; children: React
   // Session lives in browser storage: wait for it before deciding.
   const hydrated = useSessionHydrated();
 
+  // The stored session is only a hint for the UI. Access is decided by the
+  // server: the httpOnly refresh cookie must give us a valid access token.
+  const [verified, setVerified] = useState<string | null>(null);
+  const sessionId = session?.id;
   useEffect(() => {
-    if (hydrated && !session) router.replace("/login");
-  }, [hydrated, session, role, router]);
+    if (!hydrated) return;
+    if (!sessionId) {
+      router.replace("/login");
+      return;
+    }
+    let alive = true;
+    const check = () =>
+      authApi
+        .accessToken(role)
+        .then(() => alive && setVerified(sessionId))
+        .catch((e) => {
+          if (!alive) return;
+          // Network trouble: keep the user in; an expired/revoked session: sign out.
+          if (e instanceof authApi.AuthError && e.status === 0) return setVerified(sessionId);
+          signOut(role);
+          router.replace("/login");
+        });
+    check();
+    const onVisible = () => document.visibilityState === "visible" && check();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [hydrated, sessionId, role, router, signOut]);
 
   useEffect(() => setSidebar(false), [path, setSidebar]);
 
-  if (!hydrated || !session) {
+  if (!hydrated || !session || verified !== session.id) {
     return (
       <div className="grid min-h-screen place-items-center">
         <div className="flex flex-col items-center gap-3 text-sm text-muted">
@@ -87,7 +115,8 @@ export function DashboardShell({ role, children }: { role: Role; children: React
     );
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await authApi.logout(role);
     signOut(role);
     router.replace("/login");
   };

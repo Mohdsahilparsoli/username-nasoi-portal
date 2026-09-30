@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/lib/api";
+import * as authApi from "@/lib/api/auth";
 import { qk } from "@/lib/query-keys";
 import type { Role, User } from "@/types";
 
@@ -24,6 +25,7 @@ export function useUpdateUser(id: string) {
   });
 }
 
-export function useChangePassword(id: string) {
-  return useMutation({ mutationFn: (v: { old: string; pw: string }) => api.changePassword(id, v.old, v.pw) });
+/** Real API: POST /api/v1/auth/change-password (logs out other devices). */
+export function useChangePassword(role: Role) {
+  return useMutation({ mutationFn: (v: { old: string; pw: string }) => authApi.changePassword(role, v.old, v.pw) });
 }

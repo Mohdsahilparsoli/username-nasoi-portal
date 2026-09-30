@@ -13,7 +13,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form-controls";
 import { Alert } from "@/components/ui/misc";
-import * as api from "@/lib/api";
+import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
 import { useSessionStore } from "@/stores/session-store";
 import { useSessionHydrated } from "@/stores/use-session-hydrated";
@@ -44,8 +44,8 @@ export function LoginForm() {
   });
 
   const login = useMutation({
-    mutationFn: (v: Form) => api.login(v.loginId, v.password),
-    onSuccess: (user) => {
+    mutationFn: (v: Form) => authApi.login(v.loginId, v.password),
+    onSuccess: ({ user }) => {
       signIn(user.role, { id: user.id, name: user.name });
       router.push(ROLE_META[user.role].home);
     },

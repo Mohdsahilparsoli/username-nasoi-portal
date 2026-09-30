@@ -14,6 +14,7 @@ import { RX, zMobile, zOptionalMobile } from "@/lib/validation";
 import { maskAadhaar } from "@/features/registration/schema";
 import { fmtDate, initials, maskAccount } from "@/lib/utils";
 import type { User } from "@/types";
+import { useMe } from "@/components/layout/dashboard-shell";
 import { useChangePassword, useUpdateUser, useUser } from "./hooks";
 
 const contactSchema = z.object({
@@ -34,7 +35,12 @@ const bankSchema = z
 const pwSchema = z
   .object({
     old: z.string().min(1, "Required"),
-    pw: z.string().regex(RX.password, "Min 6 characters, letters + numbers"),
+    pw: z
+      .string()
+      .min(8, "At least 8 characters")
+      .max(72, "At most 72 characters")
+      .regex(/[A-Za-z]/, "Must contain a letter")
+      .regex(/\d/, "Must contain a number"),
     pw2: z.string(),
   })
   .refine((v) => v.pw === v.pw2, { path: ["pw2"], message: "Passwords do not match" });
@@ -74,7 +80,7 @@ export function ProfileView({ userId, withBank }: { userId: string; withBank?: b
         </Card>
         <ContactCard u={u} />
         {withBank && <BankCard u={u} />}
-        <PasswordCard userId={u.id} />
+        <PasswordCard />
       </div>
     </>
   );
@@ -162,15 +168,16 @@ function BankCard({ u }: { u: User }) {
   );
 }
 
-function PasswordCard({ userId }: { userId: string }) {
-  const change = useChangePassword(userId);
+function PasswordCard() {
+  const { role } = useMe();
+  const change = useChangePassword(role);
   const form = useForm<z.input<typeof pwSchema>>({ resolver: zodResolver(pwSchema), defaultValues: { old: "", pw: "", pw2: "" } });
   const e = form.formState.errors;
   const save = form.handleSubmit((v) =>
     change.mutate(
       { old: v.old, pw: v.pw },
       {
-        onSuccess: () => { toast.success("Password changed successfully."); form.reset(); },
+        onSuccess: () => { toast.success("Password changed. You have been logged out on all other devices."); form.reset(); },
         onError: (err) => form.setError("old", { message: err.message }),
       },
     ),
