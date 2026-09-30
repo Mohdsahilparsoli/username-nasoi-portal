@@ -53,7 +53,7 @@ export interface User {
 
 /** Stored record in the mock database (never sent to UI with password). */
 export interface UserRecord extends User {
-  password: string;
+  password?: string;
 }
 
 export interface Area {

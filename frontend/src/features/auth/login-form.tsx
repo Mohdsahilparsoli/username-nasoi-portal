@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown, LayoutDashboard, LogIn, TriangleAlert, UserPlus } from "lucide-react";
+import { LayoutDashboard, LogIn, TriangleAlert, UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -31,7 +31,6 @@ export function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
   const sessions = useSessionStore((s) => s.sessions);
   const signIn = useSessionStore((s) => s.signIn);
 
@@ -127,39 +126,6 @@ export function LoginForm() {
           </div>
         )}
 
-        {/* Demo helper: remove when the real backend goes live. */}
-        <div className="rounded-lg border border-dashed border-slate-300 bg-canvas text-[13px]">
-          <button type="button" onClick={() => setDemoOpen((v) => !v)} className="flex w-full items-center justify-between px-3 py-2 font-semibold text-navy" aria-expanded={demoOpen}>
-            Demo accounts
-            <ChevronDown className={`size-4 transition ${demoOpen ? "rotate-180" : ""}`} />
-          </button>
-          {demoOpen && (
-            <div className="space-y-1.5 border-t border-line px-3 py-2">
-              {ROLES.map((r) => (
-                <div key={r} className="flex items-center justify-between gap-2">
-                  <span>
-                    <code className="rounded border border-line bg-white px-1.5">{ROLE_META[r].demoId}</code>{" "}
-                    <code className="rounded border border-line bg-white px-1.5">{ROLE_META[r].demoPw}</code>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="light"
-                    size="sm"
-                    data-demo={r}
-                    onClick={() => {
-                      form.setValue("loginId", ROLE_META[r].demoId);
-                      form.setValue("password", ROLE_META[r].demoPw);
-                      form.clearErrors();
-                      login.reset();
-                    }}
-                  >
-                    Use
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </form>
     </div>
   );

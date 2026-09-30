@@ -29,7 +29,7 @@ function daysAgo(n: number, h = 11) {
 function seed(): Db {
   const users: UserRecord[] = [
     {
-      id: "DEO126", role: "deo", password: "Abcd@2026", name: "Rahul Kumar", fatherName: "Suresh Kumar", motherName: "Sunita Devi",
+      id: "DEO126", role: "deo", name: "Rahul Kumar", fatherName: "Suresh Kumar", motherName: "Sunita Devi",
       dob: "1999-05-14", gender: "Male", category: "GEN", mobile: "9717323761", email: "rahul.demo@example.com",
       state: "Uttar Pradesh", district: "Meerut", tehsil: "Sardhana", pincode: "250342",
       address: "House No. 45, Gandhi Nagar, Sardhana, Meerut", qualification: "12th",
@@ -37,7 +37,7 @@ function seed(): Db {
       status: "active", joinedAt: iso(daysAgo(95)),
     },
     {
-      id: "DEO127", role: "deo", password: "Abcd@2026", name: "Priya Sharma", fatherName: "Ramesh Sharma", motherName: "Kavita Sharma",
+      id: "DEO127", role: "deo", name: "Priya Sharma", fatherName: "Ramesh Sharma", motherName: "Kavita Sharma",
       dob: "2001-11-02", gender: "Female", category: "OBC", mobile: "9811100022", email: "priya.demo@example.com",
       state: "Delhi", district: "East Delhi", tehsil: "Shahdara", pincode: "110032",
       address: "B-12, Vivek Vihar, Shahdara, Delhi", qualification: "Graduation",
@@ -45,13 +45,13 @@ function seed(): Db {
       status: "active", joinedAt: iso(daysAgo(40)),
     },
     {
-      id: "VR101", role: "verifier", password: "Abcd@2026", name: "Anjali Verma", fatherName: "Mahesh Verma", motherName: "Rekha Verma",
+      id: "VR101", role: "verifier", name: "Anjali Verma", fatherName: "Mahesh Verma", motherName: "Rekha Verma",
       dob: "1994-03-21", gender: "Female", mobile: "9990011223", email: "verifier.demo@example.com",
       state: "Uttar Pradesh", district: "Meerut", address: "12, Civil Lines, Meerut", qualification: "Post Graduation",
       status: "active", joinedAt: iso(daysAgo(200)),
     },
     {
-      id: "ADMIN", role: "admin", password: "Admin@2026", name: "Super Admin", mobile: "9000000000",
+      id: "ADMIN", role: "admin", name: "Super Admin", mobile: "9000000000",
       email: "admin.demo@example.com", status: "active", joinedAt: iso(daysAgo(365)),
     },
   ];

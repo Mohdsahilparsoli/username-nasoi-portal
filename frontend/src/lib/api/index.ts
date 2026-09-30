@@ -8,7 +8,7 @@
  */
 import { getDb, nextId, resetDb, saveDb } from "@/lib/mock/db";
 import type {
-  Assignment, Entry, EntryData, RegisterInput, Role, Settings, User, UserRecord,
+  Assignment, Entry, EntryData, Role, Settings, User, UserRecord,
 } from "@/types";
 
 export class ApiError extends Error {}
@@ -18,34 +18,12 @@ const now = () => new Date().toISOString();
 const strip = ({ password: _pw, ...u }: UserRecord): User => u;
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-function genPassword(name: string) {
-  const base = name.replace(/[^A-Za-z]/g, "").slice(0, 4) || "User";
-  return base[0].toUpperCase() + base.slice(1).toLowerCase() + "@" + (1000 + Math.floor(Math.random() * 9000));
-}
 
 /* ------------------------------------------------------------------ */
 /* Auth                                                               */
 /* ------------------------------------------------------------------ */
 
 // Login, logout, refresh and change-password use the real API: see ./auth.ts
-
-/** POST /api/v1/auth/register */
-export async function registerDeo(input: RegisterInput): Promise<{ user: User; password: string }> {
-  await wait(600);
-  const db = getDb();
-  if (db.users.some((u) => u.mobile === input.mobile)) throw new ApiError("This mobile number is already registered.");
-  if (db.users.some((u) => u.email.toLowerCase() === input.email.toLowerCase()))
-    throw new ApiError("This email ID is already registered.");
-  if (input.aadhaar && db.users.some((u) => u.aadhaar === input.aadhaar))
-    throw new ApiError("This Aadhaar number is already registered.");
-  const password = genPassword(input.name);
-  const rec: UserRecord = {
-    ...input, id: nextId("deo", "DEO", 0), role: "deo", password, status: "active", joinedAt: now(),
-  };
-  db.users.push(rec);
-  saveDb();
-  return { user: strip(clone(rec)), password };
-}
 
 /** GET /api/v1/users/me */
 export async function getUser(id: string): Promise<User> {

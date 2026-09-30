@@ -244,7 +244,7 @@ function DocumentsCard({ u }: { u: MyProfile }) {
   );
 }
 
-function PasswordCard() {
+export function PasswordCard() {
   const { role } = useMe();
   const change = useChangePassword(role);
   const form = useForm<z.input<typeof pwSchema>>({ resolver: zodResolver(pwSchema), defaultValues: { old: "", pw: "", pw2: "" } });

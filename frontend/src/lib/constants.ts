@@ -28,10 +28,10 @@ export const COUNTRIES = ["India"];
 export const CLASSES = ["10th", "12th"];
 export const BOARDS = ["UP Board", "CBSE", "ICSE", "State Board (Other)"];
 
-export const ROLE_META: Record<Role, { label: string; short: string; home: string; demoId: string; demoPw: string }> = {
-  deo: { label: "Data Entry Operator", short: "DEO", home: "/deo", demoId: "DEO126", demoPw: "Abcd@2026" },
-  verifier: { label: "Verifier", short: "VR", home: "/verifier", demoId: "VR101", demoPw: "Abcd@2026" },
-  admin: { label: "Super Admin", short: "Admin", home: "/admin", demoId: "ADMIN", demoPw: "Admin@2026" },
+export const ROLE_META: Record<Role, { label: string; short: string; home: string }> = {
+  deo: { label: "Data Entry Operator", short: "DEO", home: "/deo" },
+  verifier: { label: "Verifier", short: "VR", home: "/verifier" },
+  admin: { label: "Super Admin", short: "Admin", home: "/admin" },
 };
 
 export const STATUS_LABEL: Record<EntryStatus, string> = {

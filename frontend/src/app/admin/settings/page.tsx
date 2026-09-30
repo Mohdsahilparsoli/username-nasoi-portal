@@ -11,6 +11,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form-controls";
 import { PageHeader, Skeleton } from "@/components/ui/misc";
 import { useResetDemo, useSettings, useUpdateSettings } from "@/features/settings/hooks";
+import { PasswordCard } from "@/features/users/profile-view";
 import { useSessionStore } from "@/stores/session-store";
 
 const schema = z.object({
@@ -37,6 +38,7 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Settings" />
       <div className="space-y-6">
+        <PasswordCard />
         <Card>
           <CardHeader title="Payment settings" />
           <form
