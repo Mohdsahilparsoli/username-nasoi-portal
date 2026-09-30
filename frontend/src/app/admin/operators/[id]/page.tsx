@@ -67,7 +67,7 @@ export default function OperatorDetailPage() {
               items={[
                 ["Father's Name", u.fatherName], ["Mother's Name", u.motherName], ["Date of Birth", fmtDate(u.dob)],
                 ["Gender / Category", [u.gender, u.category].filter(Boolean).join(" / ")], ["Mobile", u.mobile], ["Email", u.email],
-                ["Qualification", u.qualification], ["Certificate", u.certificateName],
+                ["Qualification", u.qualification], ["Certificate", u.certificateName], ["Photo", u.photoName], [`Bank Proof${u.bankDocType ? ` (${u.bankDocType})` : ""}`, u.bankDocName],
                 ["Address", [u.address, u.tehsil, u.district, u.state, u.pincode].filter(Boolean).join(", ")],
                 ["Bank", u.bank?.bankName], ["Account Holder", u.bank?.holder], ["Account No.", maskAccount(u.bank?.account)], ["IFSC", u.bank?.ifsc],
               ]}

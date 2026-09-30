@@ -137,7 +137,7 @@ function BankCard({ u }: { u: User }) {
       <CardHeader title={<span className="flex items-center gap-2"><Landmark className="size-4 text-primary" /> Banking details</span>} action={!editing && <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil /> Update</Button>} />
       <CardBody>
         {!editing ? (
-          <DetailGrid items={[["Bank Name", u.bank?.bankName], ["Account Holder Name", u.bank?.holder], ["Account Number", maskAccount(u.bank?.account)], ["IFSC Code", u.bank?.ifsc]]} />
+          <DetailGrid items={[["Bank Name", u.bank?.bankName], ["Account Holder Name", u.bank?.holder], ["Account Number", maskAccount(u.bank?.account)], ["IFSC Code", u.bank?.ifsc], ...(u.bankDocName ? ([[`Bank Proof (${u.bankDocType})`, u.bankDocName]] as [string, string][]) : [])]} />
         ) : (
           <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-2">
             <Field label="Bank Name" htmlFor="b-bank" error={e.bankName?.message}><Input id="b-bank" {...form.register("bankName")} /></Field>

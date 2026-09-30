@@ -5,22 +5,27 @@ import { Alert } from "@/components/ui/misc";
 export const metadata = { title: "Terms & Conditions" };
 
 const SECTIONS: [string, string[]][] = [
-  ["1. Registration", [
-    "Registration is free. On successful registration the operator receives an Employee ID and password.",
-    "Applicants must have passed Class 10th (Matriculation or equivalent) from a recognised board.",
-    "Incomplete or incorrect registration forms may be rejected.",
+  ["1. Eligibility", [
+    "The applicant must have passed at least Class 8th from a recognised educational board.",
+    "Only applicants holding a valid passing certificate / marksheet of their highest qualification are eligible. The certificate must be uploaded during registration.",
+    "The applicant must be between 18 and 65 years of age and have a bank account in their own name.",
+    "Incomplete forms, or forms with false information, will be rejected without notice.",
   ]],
-  ["2. Work methodology & technical requirements", [
+  ["2. Registration", [
+    "Registration is free. On successful registration the operator receives an Employee ID and password.",
+    "A cancelled cheque or the first page of the bank passbook must be uploaded as bank proof for payouts.",
+  ]],
+  ["3. Work methodology & technical requirements", [
     "All operators work strictly on a Work From Home basis.",
     "Data entry must be performed only on this portal. Offline entries are not accepted.",
     "Operators must have their own Android mobile / tablet / laptop / desktop with reliable internet.",
   ]],
-  ["3. Payment structure", [
+  ["4. Payment structure", [
     "Remuneration is calculated on the number of approved entries × the rate set for the assignment (demo rate ₹10 per entry).",
     "Payments are processed between the 15th and 25th of each month into the operator's registered bank account (NEFT / RTGS / IMPS).",
     "Only accurate, verified entries are paid. Rejected entries can be corrected and resubmitted.",
   ]],
-  ["4. Conduct & data protection", [
+  ["5. Conduct & data protection", [
     "Incorrect or incomplete entries are treated as invalid and rejected with a reason.",
     "All data entered remains the property of the organisation and must not be shared or misused.",
     "An ID that stays inactive for 10 consecutive days, or that submits fraudulent data, may be deactivated by the admin.",
@@ -46,7 +51,7 @@ export default function TermsPage() {
             </div>
           ))}
           <div className="mt-6">
-            <h3 className="text-lg font-semibold text-primary">5. Self-declaration</h3>
+            <h3 className="text-lg font-semibold text-primary">6. Self-declaration</h3>
             <p className="mt-2 text-sm">
               By registering, the operator declares that the information provided is true and correct, that they will
               perform data entry only on the official portal, and that they have read and agreed to these terms.

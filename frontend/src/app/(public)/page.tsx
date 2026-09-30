@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const STEPS = [
-  { t: "Register", d: "Fill the multi-step registration form with personal, address and bank details. You instantly get an Employee ID and password." },
+  { t: "Register", d: "Fill the 5-step registration form with personal, address, bank and document details. You instantly get an Employee ID and password." },
   { t: "Get assigned", d: "The Super Admin assigns you schools in an area, the task type and a target number of entries." },
   { t: "Enter data", d: "Add student records online from your dashboard. Each entry goes to a Verifier for checking." },
   { t: "Earn", d: "Every approved entry adds to your earnings. See totals and month-wise history anytime." },

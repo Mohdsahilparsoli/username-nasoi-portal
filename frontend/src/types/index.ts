@@ -32,7 +32,11 @@ export interface User {
   bank?: BankDetails;
   /** Small data-URL thumbnail (demo only; real app stores a file on the server). */
   photo?: string;
+  photoName?: string;
   certificateName?: string;
+  /** "Cancelled Cheque" or "Bank Passbook" uploaded as bank proof. */
+  bankDocType?: string;
+  bankDocName?: string;
   status: UserStatus;
   joinedAt: string;
 }
@@ -131,5 +135,8 @@ export interface RegisterInput {
   qualification: string;
   bank: BankDetails;
   photo?: string;
+  photoName?: string;
   certificateName?: string;
+  bankDocType?: string;
+  bankDocName?: string;
 }

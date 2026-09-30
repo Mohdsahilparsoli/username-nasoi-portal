@@ -2,25 +2,27 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import {
-  ArrowLeft, ArrowRight, Check, CircleCheck, Copy, FileText, ImageUp, Info, LogIn, Pencil, Send, TriangleAlert, Wand2,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, Info, LogIn, Pencil, Send, TriangleAlert, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FileUpload } from "@/components/ui/file-upload";
 import { ChoiceGroup, Field, Input, Select, Textarea } from "@/components/ui/form-controls";
+import { DistrictOptions, StateOptions } from "@/components/ui/location-options";
 import { Alert } from "@/components/ui/misc";
 import * as api from "@/lib/api";
-import { CATEGORIES, GENDERS, QUALIFICATIONS, STATES } from "@/lib/constants";
+import { CATEGORIES, GENDERS, QUALIFICATIONS } from "@/lib/constants";
 import { cn, fmtDate, maskAccount } from "@/lib/utils";
-import { EMPTY_FORM, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
+import { BANK_DOC_TYPES, EMPTY_FORM, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
 
-const DRAFT_KEY = "nasoi_registration_draft";
+const DRAFT_KEY = "nasoi_registration_draft_v2";
+const IMG = "image/png,image/jpeg,.png,.jpg,.jpeg";
+const DOC = ".pdf,image/png,image/jpeg,.png,.jpg,.jpeg";
 
-/** Resize an uploaded photo to a small JPEG thumbnail (keeps the demo storage light). */
+/** Resize an uploaded photo to a small JPEG thumbnail (stored for the profile, not shown here). */
 function toThumbnail(file: File, size = 180): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -50,8 +52,9 @@ export function RegisterWizard() {
   const resolver: Resolver<RegistrationForm> = (values, ctx, opts) =>
     zodResolver(STEP_SCHEMAS[stepRef.current] as never)(values, ctx, opts as never) as never;
 
-  const form = useForm<RegistrationForm>({ resolver, defaultValues: EMPTY_FORM, mode: "onTouched" });
-  const { register, formState: { errors }, watch, setValue, getValues, trigger, reset } = form;
+  // Errors appear when "Next" is pressed, then update live while the user fixes them.
+  const form = useForm<RegistrationForm>({ resolver, defaultValues: EMPTY_FORM, mode: "onSubmit", reValidateMode: "onChange" });
+  const { register, formState: { errors }, watch, setValue, getValues, reset } = form;
   const v = watch();
 
   // Restore draft once, then keep saving it while the user types.
@@ -79,6 +82,8 @@ export function RegisterWizard() {
 
   const goTo = (i: number) => {
     setStep(i);
+    // Fresh step: clear old errors and the "submitted" state, keep all values.
+    reset(undefined, { keepValues: true, keepDefaultValues: true, keepDirty: true, keepTouched: true });
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...JSON.parse(raw), step: i }));
@@ -86,10 +91,10 @@ export function RegisterWizard() {
     requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
-  const next = async () => {
-    if (await trigger()) goTo(step + 1);
-    else toast.error("Please fix the highlighted fields.");
-  };
+  const next = form.handleSubmit(
+    () => goTo(step + 1),
+    () => toast.error("Please fix the highlighted fields."),
+  );
 
   const submit = useMutation({
     mutationFn: async (values: RegistrationForm) => {
@@ -100,17 +105,17 @@ export function RegisterWizard() {
           throw new Error(`Please complete "${STEPS[i].title}".`);
         }
       }
-      const res = await api.registerDeo({
+      return api.registerDeo({
         name: values.name.trim().toUpperCase(),
         fatherName: values.fatherName.trim().toUpperCase(),
         motherName: values.motherName.trim().toUpperCase(),
         dob: values.dob, gender: values.gender, category: values.category, religion: values.religion,
         mobile: values.mobile, altMobile: values.altMobile, email: values.email.trim(),
         state: values.state, district: values.district, tehsil: values.tehsil, pincode: values.pincode, address: values.address,
-        qualification: values.qualification, photo: values.photo, certificateName: values.certificateName,
+        qualification: values.qualification, photo: values.photo, photoName: values.photoName, certificateName: values.certificateName,
         bank: { bankName: values.bankName, holder: values.holder.toUpperCase(), account: values.account, ifsc: values.ifsc.toUpperCase() },
+        bankDocType: values.bankDocType, bankDocName: values.bankDocName,
       });
-      return res;
     },
     onSuccess: ({ user, password }) => {
       localStorage.removeItem(DRAFT_KEY);
@@ -122,26 +127,26 @@ export function RegisterWizard() {
 
   const fillSample = () => {
     const rnd = String(Math.floor(10000000 + Math.random() * 89999999));
-    const sample: RegistrationForm = {
-      eligible: true, docConfirm: true,
+    const acc = "1234567890" + rnd.slice(0, 2);
+    reset({
       name: "AMIT SINGH", fatherName: "RAJENDRA SINGH", motherName: "MEENA DEVI", dob: "2000-08-15",
       gender: "Male", category: "GEN", religion: "",
       mobile: "98" + rnd, altMobile: "", email: `amit${rnd.slice(0, 4)}@example.com`,
       state: "Uttar Pradesh", district: "Meerut", tehsil: "Mawana", pincode: "250401",
       address: "Village Kithore, Tehsil Mawana, District Meerut",
-      bankName: "Bank of Baroda", holder: "AMIT SINGH", account: "1234567890" + rnd.slice(0, 2), account2: "1234567890" + rnd.slice(0, 2),
-      ifsc: "BARB0MAWANA", qualification: "12th",
-      photo: getValues("photo") || sampleAvatar(), certificateName: getValues("certificateName") || "12th-marksheet.pdf",
+      bankName: "Bank of Baroda", holder: "AMIT SINGH", account: acc, account2: acc, ifsc: "BARB0MAWANA",
+      bankDocType: "Cancelled Cheque", bankDocName: getValues("bankDocName") || "cancelled-cheque.jpg",
+      qualification: "12th", photo: getValues("photo") || "", photoName: getValues("photoName") || "passport-photo.jpg",
+      certificateName: getValues("certificateName") || "12th-marksheet.pdf",
       declare: false, terms: false,
-    };
-    reset(sample);
+    });
     toast.success("Sample data filled in all steps. Go to Review to submit.");
   };
 
   if (done) return <Success {...done} />;
 
   const err = (k: keyof RegistrationForm) => errors[k]?.message as string | undefined;
-  const districts = STATES[v.state] ?? [];
+  const last = STEPS.length - 1;
 
   return (
     <div ref={topRef} className="scroll-mt-24">
@@ -162,7 +167,7 @@ export function RegisterWizard() {
           noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            if (step < STEPS.length - 1) next();
+            if (step < last) next();
             // The resolver returns only the current step's fields, so submit the full form values.
             else form.handleSubmit(() => submit.mutate(getValues()))();
           }}
@@ -172,19 +177,10 @@ export function RegisterWizard() {
               <Alert tone="blue" icon={Info}>Your saved draft has been restored. Bank account numbers are never saved and must be entered again.</Alert>
             )}
 
-            {/* STEP 1 – Eligibility */}
+            {/* STEP 1 – Personal */}
             {step === 0 && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted">Only applicants who meet both conditions below can register as a Data Entry Operator.</p>
-                <Tick label="I have passed at least Class 10th (Matriculation or equivalent) from a recognised educational board." error={err("eligible")} {...register("eligible")} />
-                <Tick label="I have a valid Class 10th passing certificate / marksheet. I understand incomplete forms will be rejected." error={err("docConfirm")} {...register("docConfirm")} />
-              </div>
-            )}
-
-            {/* STEP 2 – Personal */}
-            {step === 1 && (
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field className="sm:col-span-2" label="Full Name (as per 10th Certificate)" htmlFor="name" required error={err("name")}>
+                <Field className="sm:col-span-2" label="Full Name (as per Certificate)" htmlFor="name" required error={err("name")}>
                   <Input id="name" className="uppercase" maxLength={60} aria-invalid={!!err("name")} {...register("name")} />
                 </Field>
                 <Field label="Father's Name" htmlFor="fatherName" required error={err("fatherName")}>
@@ -208,8 +204,8 @@ export function RegisterWizard() {
               </div>
             )}
 
-            {/* STEP 3 – Contact */}
-            {step === 2 && (
+            {/* STEP 2 – Contact */}
+            {step === 1 && (
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Mobile Number" htmlFor="mobile" required error={err("mobile")}>
                   <Input id="mobile" inputMode="numeric" maxLength={10} aria-invalid={!!err("mobile")} {...register("mobile", { onChange: digitsOnly })} />
@@ -220,16 +216,14 @@ export function RegisterWizard() {
                 <Field className="sm:col-span-2" label="Email ID" htmlFor="email" required error={err("email")}>
                   <Input id="email" type="email" maxLength={80} aria-invalid={!!err("email")} {...register("email")} />
                 </Field>
-                <Field label="State" htmlFor="state" required error={err("state")}>
+                <Field label="State / Union Territory" htmlFor="state" required error={err("state")}>
                   <Select id="state" aria-invalid={!!err("state")} {...register("state", { onChange: () => setValue("district", "") })}>
-                    <option value="">-- Select State --</option>
-                    {Object.keys(STATES).map((s) => <option key={s}>{s}</option>)}
+                    <StateOptions />
                   </Select>
                 </Field>
                 <Field label="District" htmlFor="district" required error={err("district")}>
                   <Select id="district" disabled={!v.state} aria-invalid={!!err("district")} {...register("district")}>
-                    <option value="">-- Select District --</option>
-                    {districts.map((d) => <option key={d}>{d}</option>)}
+                    <DistrictOptions state={v.state} />
                   </Select>
                 </Field>
                 <Field label="Sub District / Tehsil" htmlFor="tehsil" required error={err("tehsil")}>
@@ -244,8 +238,8 @@ export function RegisterWizard() {
               </div>
             )}
 
-            {/* STEP 4 – Bank */}
-            {step === 3 && (
+            {/* STEP 3 – Bank */}
+            {step === 2 && (
               <>
                 <Alert tone="amber" icon={TriangleAlert}>Demo portal: use sample details, not your real bank account.</Alert>
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -265,81 +259,86 @@ export function RegisterWizard() {
                     <Input id="ifsc" className="uppercase" maxLength={11} aria-invalid={!!err("ifsc")} {...register("ifsc")} />
                   </Field>
                 </div>
+                <div className="space-y-4 rounded-xl border border-line p-4 sm:p-5">
+                  <Field label="Bank proof – upload one" required error={err("bankDocType")}>
+                    <ChoiceGroup name="bankDocType" options={[...BANK_DOC_TYPES]} register={register as never} invalid={!!err("bankDocType")} />
+                  </Field>
+                  {v.bankDocType && (
+                    <Field label={`Upload ${v.bankDocType}`} required error={err("bankDocName")}>
+                      <FileUpload
+                        fileName={v.bankDocName}
+                        accept={DOC}
+                        hint={`${v.bankDocType === "Bank Passbook" ? "First page of passbook showing name & account number" : "Cancelled cheque with your name printed"} · PDF, JPG or PNG, max 2 MB`}
+                        invalid={!!err("bankDocName")}
+                        onFile={(f) => setValue("bankDocName", f.name, { shouldValidate: true })}
+                        onClear={() => setValue("bankDocName", "", { shouldValidate: true })}
+                      />
+                    </Field>
+                  )}
+                </div>
               </>
             )}
 
-            {/* STEP 5 – Documents */}
-            {step === 4 && (
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field className="sm:col-span-2" label="Highest Educational Qualification" required error={err("qualification")}>
+            {/* STEP 4 – Documents: one item per row */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <Field label="Highest Educational Qualification" required error={err("qualification")}>
                   <ChoiceGroup name="qualification" options={QUALIFICATIONS} register={register as never} invalid={!!err("qualification")} />
                 </Field>
-                <Field label="Passport Size Photo" required error={err("photo")} hint="JPG or PNG, max 2 MB">
-                  <div className="flex items-center gap-4">
-                    <div className={cn("grid h-36 w-28 shrink-0 place-items-center overflow-hidden rounded-lg border-2 border-dashed bg-canvas text-center text-[11px] text-muted", err("photo") ? "border-danger" : "border-slate-300")}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {v.photo ? <img src={v.photo} alt="Photo preview" className="size-full object-cover" /> : <span className="px-2">Photo preview</span>}
-                    </div>
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-navy hover:bg-canvas">
-                      <ImageUp className="size-4" /> {v.photo ? "Change photo" : "Upload photo"}
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        className="sr-only"
-                        onChange={async (e) => {
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          if (f.size > 2 * 1024 * 1024) return toast.error("Photo must be under 2 MB.");
-                          setValue("photo", await toThumbnail(f), { shouldValidate: true });
-                        }}
-                      />
-                    </label>
-                  </div>
+                <div className="border-t border-line" />
+                <Field label="Passport Size Photo" required error={err("photoName")}>
+                  <FileUpload
+                    kind="image"
+                    fileName={v.photoName}
+                    accept={IMG}
+                    hint="Recent colour photo, plain background · JPG or PNG, max 2 MB"
+                    invalid={!!err("photoName")}
+                    onFile={async (f) => {
+                      setValue("photo", await toThumbnail(f).catch(() => ""));
+                      setValue("photoName", f.name, { shouldValidate: true });
+                    }}
+                    onClear={() => {
+                      setValue("photo", "");
+                      setValue("photoName", "", { shouldValidate: true });
+                    }}
+                  />
                 </Field>
-                <Field label="Qualification Certificate" required error={err("certificateName")} hint="PDF, JPG or PNG, max 2 MB (demo: only the file name is kept)">
-                  <label className={cn("flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed bg-canvas px-4 py-5 text-sm hover:border-primary", err("certificateName") ? "border-danger" : "border-slate-300")}>
-                    <FileText className="size-6 text-primary" />
-                    <span className="min-w-0">
-                      <b className="block truncate text-navy">{v.certificateName || "Choose certificate file"}</b>
-                      <small className="text-muted">{v.certificateName ? "Click to replace" : "Click to browse"}</small>
-                    </span>
-                    <input
-                      type="file"
-                      accept=".pdf,image/png,image/jpeg"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        if (f.size > 2 * 1024 * 1024) return toast.error("File must be under 2 MB.");
-                        setValue("certificateName", f.name, { shouldValidate: true });
-                      }}
-                    />
-                  </label>
+                <div className="border-t border-line" />
+                <Field label={`Education Certificate${v.qualification ? ` (${v.qualification})` : ""}`} required error={err("certificateName")}>
+                  <FileUpload
+                    fileName={v.certificateName}
+                    accept={DOC}
+                    hint="Marksheet / certificate of your highest qualification · PDF, JPG or PNG, max 2 MB"
+                    invalid={!!err("certificateName")}
+                    onFile={(f) => setValue("certificateName", f.name, { shouldValidate: true })}
+                    onClear={() => setValue("certificateName", "", { shouldValidate: true })}
+                  />
                 </Field>
               </div>
             )}
 
-            {/* STEP 6 – Review */}
-            {step === 5 && (
+            {/* STEP 5 – Review */}
+            {step === 4 && (
               <div className="space-y-5">
-                <ReviewBlock title="Personal Details" onEdit={() => goTo(1)} rows={[
+                <ReviewBlock title="Personal Details" onEdit={() => goTo(0)} rows={[
                   ["Full Name", v.name.toUpperCase()], ["Father's Name", v.fatherName.toUpperCase()], ["Mother's Name", v.motherName.toUpperCase()],
                   ["Date of Birth", fmtDate(v.dob)], ["Gender", v.gender], ["Category", v.category], ["Religion", v.religion || "—"],
                 ]} />
-                <ReviewBlock title="Contact & Address" onEdit={() => goTo(2)} rows={[
+                <ReviewBlock title="Contact & Address" onEdit={() => goTo(1)} rows={[
                   ["Mobile", v.mobile], ["Alternate Mobile", v.altMobile || "—"], ["Email ID", v.email],
-                  ["State / District", `${v.state} / ${v.district}`], ["Tehsil / Pincode", `${v.tehsil} / ${v.pincode}`], ["Address", v.address],
+                  ["State / UT", v.state], ["District", v.district], ["Tehsil / Pincode", `${v.tehsil} / ${v.pincode}`], ["Address", v.address],
                 ]} />
-                <ReviewBlock title="Bank Details" onEdit={() => goTo(3)} rows={[
-                  ["Bank Name", v.bankName], ["Account Holder", v.holder.toUpperCase()], ["Account Number", maskAccount(v.account)], ["IFSC Code", v.ifsc.toUpperCase()],
+                <ReviewBlock title="Bank Details" onEdit={() => goTo(2)} rows={[
+                  ["Bank Name", v.bankName], ["Account Holder", v.holder.toUpperCase()], ["Account Number", maskAccount(v.account)],
+                  ["IFSC Code", v.ifsc.toUpperCase()], [`Bank Proof (${v.bankDocType || "—"})`, uploaded(v.bankDocName)],
                 ]} />
-                <ReviewBlock title="Qualification & Documents" onEdit={() => goTo(4)} rows={[
-                  ["Qualification", v.qualification], ["Photo", v.photo ? "Uploaded" : "—"], ["Certificate", v.certificateName || "—"],
+                <ReviewBlock title="Qualification & Documents" onEdit={() => goTo(3)} rows={[
+                  ["Highest Qualification", v.qualification], ["Passport Size Photo", uploaded(v.photoName)], ["Education Certificate", uploaded(v.certificateName)],
                 ]} />
                 <div className="space-y-3 rounded-xl border border-line bg-primary-soft/50 p-4">
                   <h3 className="font-semibold">Declaration</h3>
                   <Tick label="I hereby declare that the information provided above is true and correct to the best of my knowledge. I understand that any false statement will lead to immediate disqualification." error={err("declare")} {...register("declare")} />
-                  <Tick label={<>I have read and agree to the <Link href="/terms" target="_blank" className="font-semibold text-primary underline">Terms &amp; Conditions</Link>.</>} error={err("terms")} {...register("terms")} />
+                  <Tick label={<>I meet the eligibility criteria and have read and agree to the <Link href="/terms" target="_blank" className="font-semibold text-primary underline">Terms &amp; Conditions</Link>.</>} error={err("terms")} {...register("terms")} />
                 </div>
               </div>
             )}
@@ -350,7 +349,7 @@ export function RegisterWizard() {
               <ArrowLeft /> Back
             </Button>
             <span className="hidden text-xs text-muted sm:block">Progress is saved automatically on this device.</span>
-            {step < STEPS.length - 1 ? (
+            {step < last ? (
               <Button type="submit">Next <ArrowRight /></Button>
             ) : (
               <Button type="submit" variant="success" disabled={submit.isPending}>
@@ -369,13 +368,10 @@ export function RegisterWizard() {
 
 /* ------------------------------------------------------------------ */
 
+const uploaded = (name?: string) => (name ? `✓ Uploaded – ${name}` : "Not uploaded");
+
 function digitsOnly(e: React.ChangeEvent<HTMLInputElement>) {
   e.target.value = e.target.value.replace(/\D/g, "");
-}
-
-function sampleAvatar() {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150'><rect width='120' height='150' fill='#e9effb'/><circle cx='60' cy='58' r='26' fill='#1c3f94'/><rect x='22' y='94' width='76' height='56' rx='30' fill='#1c3f94'/></svg>`;
-  return "data:image/svg+xml;base64," + btoa(svg);
 }
 
 function Stepper({ step, onJump }: { step: number; onJump: (i: number) => void }) {
@@ -452,7 +448,7 @@ function ReviewBlock({ title, rows, onEdit }: { title: string; rows: [string, st
         {rows.map(([k, val]) => (
           <div key={k}>
             <dt className="text-xs text-muted">{k}</dt>
-            <dd className="text-sm font-medium break-words">{val || "—"}</dd>
+            <dd className={cn("text-sm font-medium break-words", val.startsWith("✓") && "text-success", val === "Not uploaded" && "text-danger")}>{val || "—"}</dd>
           </div>
         ))}
       </dl>

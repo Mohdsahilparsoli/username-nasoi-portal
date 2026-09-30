@@ -1,13 +1,10 @@
 import type { EntryStatus, Role } from "@/types";
+import { STATE_DISTRICTS } from "./india-locations";
 
-export const STATES: Record<string, string[]> = {
-  "Uttar Pradesh": ["Meerut", "Ghaziabad", "Lucknow", "Agra"],
-  Delhi: ["North Delhi", "South Delhi", "East Delhi", "West Delhi"],
-  Haryana: ["Gurugram", "Faridabad", "Panipat", "Rohtak"],
-  Rajasthan: ["Jaipur", "Alwar", "Ajmer", "Kota"],
-  Bihar: ["Patna", "Gaya", "Muzaffarpur", "Bhagalpur"],
-  "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior", "Jabalpur"],
-};
+export { STATES_LIST, UNION_TERRITORIES } from "./india-locations";
+
+/** All States / UTs of India → districts (A–Z). */
+export const STATES: Record<string, string[]> = STATE_DISTRICTS;
 
 export const TASK_TYPES = [
   "Student Academic Record",
@@ -25,7 +22,7 @@ export const REJECT_REASONS = [
 
 export const GENDERS = ["Male", "Female", "Other"];
 export const CATEGORIES = ["GEN", "OBC", "SC", "ST"];
-export const QUALIFICATIONS = ["10th", "12th", "Graduation", "Post Graduation"];
+export const QUALIFICATIONS = ["8th", "10th", "12th", "Graduation", "Post Graduation"];
 export const CLASSES = ["10th", "12th"];
 export const BOARDS = ["UP Board", "CBSE", "ICSE", "State Board (Other)"];
 

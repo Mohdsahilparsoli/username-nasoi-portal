@@ -14,7 +14,8 @@ import { PageHeader, Skeleton } from "@/components/ui/misc";
 import { useCreateAssignment } from "@/features/assignments/hooks";
 import { useSettings } from "@/features/settings/hooks";
 import { useUsers } from "@/features/users/hooks";
-import { STATES, TASK_TYPES } from "@/lib/constants";
+import { DistrictOptions, StateOptions } from "@/components/ui/location-options";
+import { TASK_TYPES } from "@/lib/constants";
 
 const schema = z.object({
   deoId: z.string().min(1, "Select an operator"),
@@ -115,16 +116,14 @@ function AssignInner() {
           <Field label="Target (no. of entries)" htmlFor="target" required error={e.target?.message}>
             <Input id="target" type="number" min={1} aria-invalid={!!e.target} {...register("target")} />
           </Field>
-          <Field label="State" htmlFor="state" required error={e.state?.message}>
+          <Field label="State / UT" htmlFor="state" required error={e.state?.message}>
             <Select id="state" aria-invalid={!!e.state} {...register("state", { onChange: () => setValue("district", "") })}>
-              <option value="">-- Select State --</option>
-              {Object.keys(STATES).map((s) => <option key={s}>{s}</option>)}
+              <StateOptions />
             </Select>
           </Field>
           <Field label="District" htmlFor="district" required error={e.district?.message}>
             <Select id="district" aria-invalid={!!e.district} disabled={!state} {...register("district")}>
-              <option value="">-- Select District --</option>
-              {(STATES[state] ?? []).map((d) => <option key={d}>{d}</option>)}
+              <DistrictOptions state={state} />
             </Select>
           </Field>
           <Field label="Block / Tehsil" htmlFor="block" required error={e.block?.message}>
