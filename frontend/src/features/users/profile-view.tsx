@@ -67,7 +67,7 @@ export function ProfileView({ userId, withBank }: { userId: string; withBank?: b
               items={[
                 ["Registration ID", u.id], ["Name", u.name], ["Father's Name", u.fatherName], ["Mother's Name", u.motherName],
                 ["Date of Birth", fmtDate(u.dob)], ["Gender", u.gender], ["Category", u.category], ["Qualification", u.qualification],
-                ["Religion", u.religion], ["Aadhaar Number", maskAadhaar(u.aadhaar)], ["Registered on", fmtDate(u.joinedAt)],
+                ["Religion", u.religion], ["Aadhaar Number", maskAadhaar(u.aadhaar)], ["PAN Number", u.pan], ["Registered on", fmtDate(u.joinedAt)],
               ]}
             />
           </CardBody>

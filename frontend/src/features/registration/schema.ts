@@ -62,16 +62,24 @@ export const bankSchema = z
 
 export const BANK_DOC_TYPES = ["Bank Passbook", "Cancelled Cheque"] as const;
 
+const PAN_RX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+
 export const documentsSchema = z.object({
   qualification: z.string().min(1, "Select your highest qualification"),
   aadhaar: z.string().refine(isValidAadhaar, "Enter a valid 12-digit Aadhaar number"),
   aadhaarDocName: z.string().min(1, "Please upload your Aadhaar card"),
+  // PAN card is optional, but if a number or a file is given, both are needed.
+  pan: z.string().trim().toUpperCase().refine((v) => v === "" || PAN_RX.test(v), "Enter a valid PAN (e.g. ABCDE1234F)"),
+  panDocName: z.string(),
   bankDocType: z.string().min(1, "Choose bank passbook or cancelled cheque"),
   bankDocName: z.string().min(1, "Please upload the bank passbook or cancelled cheque"),
   photoName: z.string().min(1, "Please upload your passport size photo"),
   photo: z.string().optional(),
   signatureName: z.string().min(1, "Please upload your signature"),
   signature: z.string().optional(),
+}).superRefine((v, ctx) => {
+  if (v.pan && !v.panDocName) ctx.addIssue({ code: "custom", path: ["panDocName"], message: "Please upload your PAN card" });
+  if (!v.pan && v.panDocName) ctx.addIssue({ code: "custom", path: ["pan"], message: "Enter the PAN number for the uploaded card" });
 });
 
 export const declarationSchema = z.object({
@@ -99,7 +107,7 @@ export const EMPTY_FORM: RegistrationForm = {
   name: "", fatherName: "", motherName: "", dob: "", email: "", mobile: "", gender: "", category: "", religion: "",
   country: "India", state: "", district: "", tehsil: "", postOffice: "", pincode: "", policeStation: "", address: "",
   bankName: "", holder: "", account: "", account2: "", ifsc: "",
-  qualification: "", aadhaar: "", aadhaarDocName: "", bankDocType: "", bankDocName: "",
+  qualification: "", aadhaar: "", aadhaarDocName: "", pan: "", panDocName: "", bankDocType: "", bankDocName: "",
   photoName: "", photo: "", signatureName: "", signature: "",
   declare: false, terms: false,
 };

@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, Info, LogIn, Pencil, Send, ShieldCheck, TriangleAlert, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, ExternalLink, FileText, ImageIcon, Info, LogIn, Pencil, Send, ShieldCheck, TriangleAlert, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
@@ -18,7 +18,10 @@ import { CATEGORIES, COUNTRIES, GENDERS, QUALIFICATIONS, RELIGIONS } from "@/lib
 import { cn, fmtDate, maskAccount } from "@/lib/utils";
 import { BANK_DOC_TYPES, EMPTY_FORM, maskAadhaar, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
 
-const DRAFT_KEY = "nasoi_registration_draft_v3";
+const DRAFT_KEY = "nasoi_registration_draft_v4";
+
+/** Uploaded files, kept in memory so they can be opened in a new tab from the preview. */
+type DocKey = "aadhaarDocName" | "panDocName" | "bankDocName" | "photoName" | "signatureName";
 const IMG = "image/png,image/jpeg,.png,.jpg,.jpeg";
 const DOC = ".pdf,image/png,image/jpeg,.png,.jpg,.jpeg";
 
@@ -49,6 +52,7 @@ export function RegisterWizard() {
   stepRef.current = step;
   const [done, setDone] = useState<{ id: string; mobile: string; password: string } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [fileUrls, setFileUrls] = useState<Partial<Record<DocKey, string>>>({});
   const topRef = useRef<HTMLDivElement>(null);
 
   // Validate only the current step's schema.
@@ -66,7 +70,11 @@ export function RegisterWizard() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw) as { values: RegistrationForm; step: number };
-        reset({ ...EMPTY_FORM, ...d.values, account: "", account2: "", aadhaar: "" });
+        // Files cannot be kept in a draft, so uploads must be done again.
+        reset({
+          ...EMPTY_FORM, ...d.values, account: "", account2: "", aadhaar: "",
+          aadhaarDocName: "", panDocName: "", bankDocName: "", photoName: "", photo: "", signatureName: "", signature: "",
+        });
         setStep(Math.min(d.step, STEPS.length - 1));
         setDraftLoaded(true);
       }
@@ -94,6 +102,31 @@ export function RegisterWizard() {
     requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
+  /** Keep the chosen file (for "View") and put its name in the form. */
+  const attach = (key: DocKey, file: File | Blob, name: string) => {
+    setFileUrls((prev) => {
+      if (prev[key]) URL.revokeObjectURL(prev[key]!);
+      return { ...prev, [key]: URL.createObjectURL(file) };
+    });
+    setValue(key, name, { shouldValidate: true });
+  };
+  const detach = (key: DocKey) => {
+    setFileUrls((prev) => {
+      if (prev[key]) URL.revokeObjectURL(prev[key]!);
+      const nextUrls = { ...prev };
+      delete nextUrls[key];
+      return nextUrls;
+    });
+    setValue(key, "", { shouldValidate: true });
+    if (key === "photoName") setValue("photo", "");
+    if (key === "signatureName") setValue("signature", "");
+  };
+
+  // Free memory used by file previews when leaving the page.
+  const urlsRef = useRef(fileUrls);
+  urlsRef.current = fileUrls;
+  useEffect(() => () => Object.values(urlsRef.current).forEach((u) => u && URL.revokeObjectURL(u)), []);
+
   const next = form.handleSubmit(
     () => goTo(step + 1),
     () => toast.error("Please fix the highlighted fields."),
@@ -119,6 +152,7 @@ export function RegisterWizard() {
         bank: { bankName: values.bankName, holder: values.holder.toUpperCase(), account: values.account, ifsc: values.ifsc.toUpperCase() },
         qualification: values.qualification,
         aadhaar: values.aadhaar, aadhaarDocName: values.aadhaarDocName,
+        pan: values.pan ? values.pan.toUpperCase() : undefined, panDocName: values.panDocName || undefined,
         bankDocType: values.bankDocType, bankDocName: values.bankDocName,
         photo: values.photo, photoName: values.photoName, signature: values.signature, signatureName: values.signatureName,
       });
@@ -132,6 +166,15 @@ export function RegisterWizard() {
   });
 
   const fillSample = () => {
+    const g0 = getValues();
+    const samples: [DocKey, string, string][] = [
+      ["aadhaarDocName", "aadhaar-card.svg", "Sample Aadhaar Card"],
+      ["panDocName", "pan-card.svg", "Sample PAN Card"],
+      ["bankDocName", "passbook-first-page.svg", "Sample Bank Passbook"],
+    ];
+    for (const [k, name, title] of samples) if (!g0[k]) attach(k, sampleDoc(title), name);
+    if (!g0.photoName) attach("photoName", svgBlob(samplePhotoSvg()), "passport-photo.svg");
+    if (!g0.signatureName) attach("signatureName", svgBlob(sampleSignatureSvg()), "signature.svg");
     const rnd = String(Math.floor(10000000 + Math.random() * 89999999));
     const acc = "1234567890" + rnd.slice(0, 2);
     const g = getValues();
@@ -141,10 +184,11 @@ export function RegisterWizard() {
       country: "India", state: "Uttar Pradesh", district: "Meerut", tehsil: "Mawana", postOffice: "Kithore", pincode: "250401",
       policeStation: "Kithore", address: "House No. 12, Village Kithore, Tehsil Mawana, District Meerut",
       bankName: "Bank of Baroda", holder: "AMIT SINGH", account: acc, account2: acc, ifsc: "BARB0MAWANA",
-      qualification: "Class 12", aadhaar: "234123412346", aadhaarDocName: g.aadhaarDocName || "aadhaar-card.pdf",
-      bankDocType: "Bank Passbook", bankDocName: g.bankDocName || "passbook-first-page.jpg",
-      photo: g.photo || samplePhoto(), photoName: g.photoName || "passport-photo.jpg",
-      signature: g.signature || sampleSignature(), signatureName: g.signatureName || "signature.png",
+      qualification: "Class 12", aadhaar: "234123412346", aadhaarDocName: g.aadhaarDocName || "aadhaar-card.svg",
+      pan: "ABCDE1234F", panDocName: g.panDocName || "pan-card.svg",
+      bankDocType: "Bank Passbook", bankDocName: g.bankDocName || "passbook-first-page.svg",
+      photo: g.photo || svgDataUrl(samplePhotoSvg()), photoName: g.photoName || "passport-photo.svg",
+      signature: g.signature || svgDataUrl(sampleSignatureSvg()), signatureName: g.signatureName || "signature.svg",
       declare: false, terms: false,
     });
     toast.success("Sample data filled in all steps. Go to Preview to submit.");
@@ -182,7 +226,7 @@ export function RegisterWizard() {
         >
           <div className="space-y-5 px-5 py-6 sm:px-6">
             {draftLoaded && step === 0 && (
-              <Alert tone="blue" icon={Info}>Your saved draft has been restored. Bank account and Aadhaar numbers are never saved and must be entered again.</Alert>
+              <Alert tone="blue" icon={Info}>Your saved draft has been restored. Bank account and Aadhaar numbers, and uploaded documents, are not saved – please enter / upload them again.</Alert>
             )}
 
             {/* STEP 1 – Personal */}
@@ -298,8 +342,26 @@ export function RegisterWizard() {
                       accept={DOC}
                       hint="Front and back in one file · PDF, JPG or PNG, max 2 MB"
                       invalid={!!err("aadhaarDocName")}
-                      onFile={(f) => setValue("aadhaarDocName", f.name, { shouldValidate: true })}
-                      onClear={() => setValue("aadhaarDocName", "", { shouldValidate: true })}
+                      viewUrl={fileUrls.aadhaarDocName}
+                      onFile={(f) => attach("aadhaarDocName", f, f.name)}
+                      onClear={() => detach("aadhaarDocName")}
+                    />
+                  </Field>
+                </Section>
+
+                <Section title="PAN Card" optional>
+                  <Field label="PAN Number" htmlFor="pan" error={err("pan")} hint="10 characters, e.g. ABCDE1234F">
+                    <Input id="pan" autoComplete="off" maxLength={10} className="uppercase sm:max-w-xs" aria-invalid={!!err("pan")} {...register("pan", { onChange: (e) => (e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")) })} />
+                  </Field>
+                  <Field label="Upload PAN Card" error={err("panDocName")}>
+                    <FileUpload
+                      fileName={v.panDocName}
+                      accept={DOC}
+                      hint="Front side · PDF, JPG or PNG, max 2 MB"
+                      invalid={!!err("panDocName")}
+                      viewUrl={fileUrls.panDocName}
+                      onFile={(f) => attach("panDocName", f, f.name)}
+                      onClear={() => detach("panDocName")}
                     />
                   </Field>
                 </Section>
@@ -314,8 +376,9 @@ export function RegisterWizard() {
                       accept={DOC}
                       hint={`${v.bankDocType === "Cancelled Cheque" ? "Cancelled cheque with your name printed" : "First page showing name & account number"} · PDF, JPG or PNG, max 2 MB`}
                       invalid={!!err("bankDocName")}
-                      onFile={(f) => setValue("bankDocName", f.name, { shouldValidate: true })}
-                      onClear={() => setValue("bankDocName", "", { shouldValidate: true })}
+                      viewUrl={fileUrls.bankDocName}
+                      onFile={(f) => attach("bankDocName", f, f.name)}
+                      onClear={() => detach("bankDocName")}
                     />
                   </Field>
                 </Section>
@@ -328,11 +391,12 @@ export function RegisterWizard() {
                       accept={IMG}
                       hint="Recent colour photo, plain background · JPG or PNG, max 2 MB"
                       invalid={!!err("photoName")}
+                      viewUrl={fileUrls.photoName}
                       onFile={async (f) => {
                         setValue("photo", await toThumbnail(f, 240).catch(() => ""));
-                        setValue("photoName", f.name, { shouldValidate: true });
+                        attach("photoName", f, f.name);
                       }}
-                      onClear={() => { setValue("photo", ""); setValue("photoName", "", { shouldValidate: true }); }}
+                      onClear={() => detach("photoName")}
                     />
                   </Field>
                 </Section>
@@ -346,11 +410,12 @@ export function RegisterWizard() {
                       hint="Sign in black/blue ink on white paper · JPG or PNG, max 1 MB"
                       maxMb={1}
                       invalid={!!err("signatureName")}
+                      viewUrl={fileUrls.signatureName}
                       onFile={async (f) => {
                         setValue("signature", await toThumbnail(f, 360).catch(() => ""));
-                        setValue("signatureName", f.name, { shouldValidate: true });
+                        attach("signatureName", f, f.name);
                       }}
-                      onClear={() => { setValue("signature", ""); setValue("signatureName", "", { shouldValidate: true }); }}
+                      onClear={() => detach("signatureName")}
                     />
                   </Field>
                 </Section>
@@ -386,11 +451,20 @@ export function RegisterWizard() {
                 <ReviewBlock title="Banking Details" onEdit={() => goTo(2)} rows={[
                   ["Bank Name", v.bankName], ["Account Holder Name", v.holder.toUpperCase()], ["Account Number", maskAccount(v.account)], ["IFSC Code", v.ifsc.toUpperCase()],
                 ]} />
-                <ReviewBlock title="Documents & Qualification" onEdit={() => goTo(3)} rows={[
+                <ReviewBlock title="Qualification & ID Details" onEdit={() => goTo(3)} rows={[
                   ["Education Qualification", v.qualification], ["Aadhaar Number", maskAadhaar(v.aadhaar)],
-                  ["Aadhaar Card", uploaded(v.aadhaarDocName)], [v.bankDocType || "Bank Passbook / Cheque", uploaded(v.bankDocName)],
-                  ["Photo", uploaded(v.photoName)], ["Signature", uploaded(v.signatureName)],
+                  ["PAN Number", v.pan ? v.pan.toUpperCase() : "Not provided (optional)"],
                 ]} />
+                <UploadedDocs
+                  onEdit={() => goTo(3)}
+                  docs={[
+                    { label: "Aadhaar Card", name: v.aadhaarDocName, url: fileUrls.aadhaarDocName, required: true },
+                    { label: "PAN Card", name: v.panDocName, url: fileUrls.panDocName, required: false },
+                    { label: v.bankDocType || "Bank Passbook / Cancelled Cheque", name: v.bankDocName, url: fileUrls.bankDocName, required: true },
+                    { label: "Passport Size Photo", name: v.photoName, url: fileUrls.photoName, required: true, image: true },
+                    { label: "Signature", name: v.signatureName, url: fileUrls.signatureName, required: true, image: true },
+                  ]}
+                />
                 <div className="space-y-3 rounded-xl border border-line bg-primary-soft/50 p-4">
                   <h3 className="font-semibold">Declaration</h3>
                   <Tick label="I hereby declare that the information provided above is true and correct to the best of my knowledge. I understand that any false statement will lead to immediate disqualification." error={err("declare")} {...register("declare")} />
@@ -424,28 +498,29 @@ export function RegisterWizard() {
 
 /* ------------------------------------------------------------------ */
 
-const uploaded = (name?: string) => (name ? `✓ Uploaded – ${name}` : "Not uploaded");
-
 function digitsOnly(e: React.ChangeEvent<HTMLInputElement>) {
   e.target.value = e.target.value.replace(/\D/g, "");
 }
 
-function samplePhoto() {
-  return "data:image/svg+xml;base64," + btoa(
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150'><rect width='120' height='150' fill='#e9effb'/><circle cx='60' cy='58' r='26' fill='#1c3f94'/><rect x='22' y='94' width='76' height='60' rx='30' fill='#1c3f94'/></svg>`,
+const samplePhotoSvg = () =>
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150'><rect width='120' height='150' fill='#e9effb'/><circle cx='60' cy='58' r='26' fill='#1c3f94'/><rect x='22' y='94' width='76' height='60' rx='30' fill='#1c3f94'/></svg>`;
+const sampleSignatureSvg = () =>
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80'><rect width='240' height='80' fill='#fff'/><path d='M14 56c18-30 30-38 36-26s-10 30 4 22 22-40 30-30-6 28 8 24 18-26 28-20 2 20 14 18 20-14 30-12 20 8 60-6' fill='none' stroke='#1a2b6b' stroke-width='3' stroke-linecap='round'/></svg>`;
+const svgDataUrl = (svg: string) => "data:image/svg+xml;base64," + btoa(svg);
+const svgBlob = (svg: string) => new Blob([svg], { type: "image/svg+xml" });
+/** Placeholder "document" used by Fill sample data, so View works in the demo. */
+const sampleDoc = (title: string) =>
+  svgBlob(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 260'><rect width='420' height='260' rx='16' fill='#f5f7fa' stroke='#1c3f94' stroke-width='3'/><rect width='420' height='54' rx='16' fill='#1c3f94'/><text x='24' y='36' font-family='Arial' font-size='20' fill='#fff' font-weight='bold'>${title}</text><text x='24' y='120' font-family='Arial' font-size='16' fill='#5d6b7a'>Demo placeholder – upload the real document</text><text x='24' y='150' font-family='Arial' font-size='16' fill='#5d6b7a'>when registering.</text></svg>`,
   );
-}
 
-function sampleSignature() {
-  return "data:image/svg+xml;base64," + btoa(
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80'><rect width='240' height='80' fill='#fff'/><path d='M14 56c18-30 30-38 36-26s-10 30 4 22 22-40 30-30-6 28 8 24 18-26 28-20 2 20 14 18 20-14 30-12 20 8 60-6' fill='none' stroke='#1a2b6b' stroke-width='3' stroke-linecap='round'/></svg>`,
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, optional, children }: { title: string; optional?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-4 rounded-xl border border-line p-4 sm:p-5">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-primary">{title}</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-primary">
+        {title}
+        {optional && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-muted">Optional</span>}
+      </h3>
       {children}
     </div>
   );
@@ -498,6 +573,53 @@ function Stepper({ step, onJump }: { step: number; onJump: (i: number) => void }
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+function UploadedDocs({
+  docs,
+  onEdit,
+}: {
+  docs: { label: string; name?: string; url?: string; required: boolean; image?: boolean }[];
+  onEdit: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-line">
+      <div className="flex items-center justify-between rounded-t-xl border-b border-line bg-canvas px-4 py-2.5">
+        <h3 className="text-sm font-semibold">Uploaded Documents</h3>
+        <button type="button" onClick={onEdit} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+          <Pencil className="size-3.5" /> Edit
+        </button>
+      </div>
+      <ul className="divide-y divide-line">
+        {docs.map((d) => {
+          const Icon = d.image ? ImageIcon : FileText;
+          return (
+            <li key={d.label} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", d.name ? "bg-success-soft text-success" : "bg-slate-100 text-muted")}>
+                <Icon className="size-[18px]" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-navy">{d.label}</p>
+                <p className={cn("truncate text-xs", d.name ? "text-success" : d.required ? "text-danger" : "text-muted")}>
+                  {d.name ? `✓ ${d.name}` : d.required ? "Not uploaded" : "Not provided (optional)"}
+                </p>
+              </div>
+              {d.url && (
+                <a
+                  href={d.url}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
+                >
+                  <ExternalLink className="size-3.5" /> View
+                </a>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

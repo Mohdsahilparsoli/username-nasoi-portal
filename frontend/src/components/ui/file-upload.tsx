@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, FileText, ImageIcon, RefreshCw, Upload, X } from "lucide-react";
+import { CircleCheck, ExternalLink, FileText, ImageIcon, RefreshCw, Upload, X } from "lucide-react";
 import { useId, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ export function FileUpload({
   hint,
   invalid,
   kind = "document",
+  viewUrl,
   onFile,
   onClear,
 }: {
@@ -25,6 +26,8 @@ export function FileUpload({
   hint: string;
   invalid?: boolean;
   kind?: "image" | "document";
+  /** When set, a "View" link opens the uploaded file in a new tab. */
+  viewUrl?: string;
   onFile: (file: File) => void | Promise<void>;
   onClear: () => void;
 }) {
@@ -64,6 +67,11 @@ export function FileUpload({
             <p className="truncate text-sm font-semibold text-navy">{fileName}</p>
             <p className="flex items-center gap-1 text-xs text-success"><CircleCheck className="size-3.5" /> Uploaded</p>
           </div>
+          {viewUrl && (
+            <a href={viewUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-primary-soft">
+              <ExternalLink className="size-3.5" /> View
+            </a>
+          )}
           <button type="button" onClick={() => input.current?.click()} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-primary-soft">
             <RefreshCw className="size-3.5" /> Change
           </button>

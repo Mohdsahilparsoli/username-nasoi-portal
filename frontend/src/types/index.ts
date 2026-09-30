@@ -42,6 +42,8 @@ export interface User {
   /** Stored in full only in the demo; always shown masked (XXXX XXXX 1234). */
   aadhaar?: string;
   aadhaarDocName?: string;
+  pan?: string;
+  panDocName?: string;
   /** "Cancelled Cheque" or "Bank Passbook" uploaded as bank proof. */
   bankDocType?: string;
   bankDocName?: string;
@@ -153,6 +155,8 @@ export interface RegisterInput {
   /** Stored in full only in the demo; always shown masked (XXXX XXXX 1234). */
   aadhaar?: string;
   aadhaarDocName?: string;
+  pan?: string;
+  panDocName?: string;
   bankDocType?: string;
   bankDocName?: string;
 }
