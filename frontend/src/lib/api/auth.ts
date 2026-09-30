@@ -140,3 +140,13 @@ export function changePassword(role: Role, currentPassword: string, newPassword:
     body: JSON.stringify({ currentPassword, newPassword }),
   });
 }
+
+/** POST /api/v1/auth/forgot-password – e-mails a reset link (same answer whether or not the e-mail exists). */
+export function forgotPassword(email: string) {
+  return request<{ ok: true; message: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+/** POST /api/v1/auth/reset-password – token from the e-mail link. */
+export function resetPassword(token: string, newPassword: string) {
+  return request<{ ok: true; message: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, newPassword }) });
+}

@@ -3,12 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { LayoutDashboard, LogIn, TriangleAlert, UserPlus } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form-controls";
@@ -17,6 +15,7 @@ import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
 import { useSessionStore } from "@/stores/session-store";
 import { useSessionHydrated } from "@/stores/use-session-hydrated";
+import { AuthCard } from "./auth-card";
 import type { Role } from "@/types";
 
 const schema = z.object({
@@ -53,14 +52,7 @@ export function LoginForm() {
   const active = mounted ? ROLES.filter((r) => sessions[r]) : [];
 
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
-      <div className="px-6 pt-7 text-center">
-        <Image src="/brand/logo.png" alt="NASOI" width={92} height={92} className="mx-auto size-[88px]" priority />
-        <p className="mt-2 font-semibold text-primary">National Academic Services of India</p>
-        <p className="text-xs text-muted">School Data Entry Portal</p>
-      </div>
-      <div className="tricolor mt-5" />
-
+    <AuthCard>
       <form className="space-y-4 p-6" onSubmit={form.handleSubmit((v) => login.mutate(v))} noValidate>
         <div>
           <h1 className="text-xl font-bold">Login to your account</h1>
@@ -85,13 +77,9 @@ export function LoginForm() {
           </div>
         </Field>
         <div className="-mt-1 text-right">
-          <button
-            type="button"
-            className="text-xs font-medium text-primary hover:underline"
-            onClick={() => toast.info("Please contact the NASOI administrator to reset your password.")}
-          >
+          <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
             Forgot password?
-          </button>
+          </Link>
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={login.isPending}>
@@ -127,6 +115,6 @@ export function LoginForm() {
         )}
 
       </form>
-    </div>
+    </AuthCard>
   );
 }

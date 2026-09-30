@@ -6,7 +6,7 @@ import { Brand } from "./brand";
 
 export function SiteFooter() {
   const path = usePathname() ?? "";
-  const live = path.startsWith("/register") || path.startsWith("/login");
+  const live = ["/register", "/login", "/forgot-password", "/reset-password"].some((p) => path.startsWith(p));
   return (
     <footer className="bg-navy text-sm text-slate-300">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
