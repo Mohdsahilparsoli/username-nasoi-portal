@@ -46,6 +46,8 @@ export async function registerDeo(input: RegisterInput): Promise<{ user: User; p
   if (db.users.some((u) => u.mobile === input.mobile)) throw new ApiError("This mobile number is already registered.");
   if (db.users.some((u) => u.email.toLowerCase() === input.email.toLowerCase()))
     throw new ApiError("This email ID is already registered.");
+  if (input.aadhaar && db.users.some((u) => u.aadhaar === input.aadhaar))
+    throw new ApiError("This Aadhaar number is already registered.");
   const password = genPassword(input.name);
   const rec: UserRecord = {
     ...input, id: nextId("deo", "DEO", 0), role: "deo", password, status: "active", joinedAt: now(),

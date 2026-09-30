@@ -22,7 +22,9 @@ export const REJECT_REASONS = [
 
 export const GENDERS = ["Male", "Female", "Other"];
 export const CATEGORIES = ["GEN", "OBC", "SC", "ST"];
-export const QUALIFICATIONS = ["8th", "10th", "12th", "Graduation", "Post Graduation"];
+export const QUALIFICATIONS = ["Class 5", "Class 8", "Class 10", "Class 12", "Graduation", "Post Graduation"];
+export const RELIGIONS = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Parsi", "Other"];
+export const COUNTRIES = ["India"];
 export const CLASSES = ["10th", "12th"];
 export const BOARDS = ["UP Board", "CBSE", "ICSE", "State Board (Other)"];
 

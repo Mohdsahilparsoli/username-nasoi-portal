@@ -11,6 +11,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/form-controls";
 import { Badge, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
 import { RX, zMobile, zOptionalMobile } from "@/lib/validation";
+import { maskAadhaar } from "@/features/registration/schema";
 import { fmtDate, initials, maskAccount } from "@/lib/utils";
 import type { User } from "@/types";
 import { useChangePassword, useUpdateUser, useUser } from "./hooks";
@@ -52,8 +53,12 @@ export function ProfileView({ userId, withBank }: { userId: string; withBank?: b
           <CardHeader title="Personal details" action={<Badge tone={u.status === "active" ? "green" : "red"}>{u.status === "active" ? "Active" : "Blocked"}</Badge>} />
           <CardBody className="flex flex-col gap-6 sm:flex-row">
             {u.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={u.photo} alt="" className="h-32 w-26 shrink-0 rounded-lg border border-line object-cover" />
+              <div className="flex shrink-0 flex-col gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={u.photo} alt="" className="h-32 w-26 rounded-lg border border-line object-cover" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {u.signature && <img src={u.signature} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
+              </div>
             ) : (
               <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>
             )}
@@ -62,7 +67,7 @@ export function ProfileView({ userId, withBank }: { userId: string; withBank?: b
               items={[
                 ["Registration ID", u.id], ["Name", u.name], ["Father's Name", u.fatherName], ["Mother's Name", u.motherName],
                 ["Date of Birth", fmtDate(u.dob)], ["Gender", u.gender], ["Category", u.category], ["Qualification", u.qualification],
-                ["Registered on", fmtDate(u.joinedAt)], ...(u.certificateName ? ([["Certificate", u.certificateName]] as [string, string][]) : []),
+                ["Religion", u.religion], ["Aadhaar Number", maskAadhaar(u.aadhaar)], ["Registered on", fmtDate(u.joinedAt)],
               ]}
             />
           </CardBody>
@@ -97,7 +102,8 @@ function ContactCard({ u }: { u: User }) {
           <DetailGrid
             items={[
               ["Mobile Number", u.mobile], ["Alternate Mobile", u.altMobile], ["Email ID", u.email],
-              ["State / District", [u.state, u.district].filter(Boolean).join(" / ")], ["Tehsil / Pincode", [u.tehsil, u.pincode].filter(Boolean).join(" / ")],
+              ["State / District", [u.state, u.district].filter(Boolean).join(" / ")], ["Sub District", u.tehsil],
+              ["Post Office / PIN", [u.postOffice, u.pincode].filter(Boolean).join(" / ")], ["Police Station", u.policeStation],
               ["Full Address", u.address],
             ]}
           />

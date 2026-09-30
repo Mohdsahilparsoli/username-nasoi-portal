@@ -10,6 +10,7 @@ import { Alert, Badge, DetailGrid, PageHeader, Progress, Skeleton, StatCard } fr
 import { useAssignments } from "@/features/assignments/hooks";
 import { useEntries } from "@/features/entries/hooks";
 import { useUpdateUser, useUser } from "@/features/users/hooks";
+import { maskAadhaar } from "@/features/registration/schema";
 import { fmtDate, initials, maskAccount, money, statsOf } from "@/lib/utils";
 
 export default function OperatorDetailPage() {
@@ -57,8 +58,12 @@ export default function OperatorDetailPage() {
           <CardHeader title="Operator details" action={<Badge tone={blocked ? "red" : "green"}>{blocked ? "Blocked" : "Active"}</Badge>} />
           <CardBody className="flex flex-col gap-6 sm:flex-row">
             {u.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={u.photo} alt="" className="h-32 w-26 shrink-0 rounded-lg border border-line object-cover" />
+              <div className="flex shrink-0 flex-col gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={u.photo} alt="" className="h-32 w-26 rounded-lg border border-line object-cover" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {u.signature && <img src={u.signature} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
+              </div>
             ) : (
               <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>
             )}
@@ -67,7 +72,9 @@ export default function OperatorDetailPage() {
               items={[
                 ["Father's Name", u.fatherName], ["Mother's Name", u.motherName], ["Date of Birth", fmtDate(u.dob)],
                 ["Gender / Category", [u.gender, u.category].filter(Boolean).join(" / ")], ["Mobile", u.mobile], ["Email", u.email],
-                ["Qualification", u.qualification], ["Certificate", u.certificateName], ["Photo", u.photoName], [`Bank Proof${u.bankDocType ? ` (${u.bankDocType})` : ""}`, u.bankDocName],
+                ["Religion", u.religion], ["Qualification", u.qualification], ["Aadhaar Number", maskAadhaar(u.aadhaar)], ["Aadhaar Card", u.aadhaarDocName],
+                [`Bank Proof${u.bankDocType ? ` (${u.bankDocType})` : ""}`, u.bankDocName], ["Photo / Signature", [u.photoName, u.signatureName].filter(Boolean).join(" · ")],
+                ["Post Office / Police Station", [u.postOffice, u.policeStation].filter(Boolean).join(" / ")],
                 ["Address", [u.address, u.tehsil, u.district, u.state, u.pincode].filter(Boolean).join(", ")],
                 ["Bank", u.bank?.bankName], ["Account Holder", u.bank?.holder], ["Account No.", maskAccount(u.bank?.account)], ["IFSC", u.bank?.ifsc],
               ]}

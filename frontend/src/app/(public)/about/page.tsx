@@ -39,7 +39,7 @@ export default function AboutPage() {
           <div className="rounded-xl border border-line bg-white p-6 shadow-sm">
             <h3 className="text-lg font-semibold">Eligibility</h3>
             <ul className="mt-3 space-y-2 text-sm">
-              <Tick>Class 8th or above passed from a recognised board</Tick>
+              <Tick>Class 5 or above passed, and a valid Aadhaar card</Tick>
               <Tick>Own Android mobile / tablet / laptop / desktop</Tick>
               <Tick>Reliable internet connection</Tick>
               <Tick>A bank account in your own name for payouts</Tick>

@@ -34,6 +34,14 @@ export interface User {
   photo?: string;
   photoName?: string;
   certificateName?: string;
+  signature?: string;
+  signatureName?: string;
+  country?: string;
+  postOffice?: string;
+  policeStation?: string;
+  /** Stored in full only in the demo; always shown masked (XXXX XXXX 1234). */
+  aadhaar?: string;
+  aadhaarDocName?: string;
   /** "Cancelled Cheque" or "Bank Passbook" uploaded as bank proof. */
   bankDocType?: string;
   bankDocName?: string;
@@ -137,6 +145,14 @@ export interface RegisterInput {
   photo?: string;
   photoName?: string;
   certificateName?: string;
+  signature?: string;
+  signatureName?: string;
+  country?: string;
+  postOffice?: string;
+  policeStation?: string;
+  /** Stored in full only in the demo; always shown masked (XXXX XXXX 1234). */
+  aadhaar?: string;
+  aadhaarDocName?: string;
   bankDocType?: string;
   bankDocName?: string;
 }

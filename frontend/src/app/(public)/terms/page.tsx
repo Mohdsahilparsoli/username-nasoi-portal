@@ -6,14 +6,15 @@ export const metadata = { title: "Terms & Conditions" };
 
 const SECTIONS: [string, string[]][] = [
   ["1. Eligibility", [
-    "The applicant must have passed at least Class 8th from a recognised educational board.",
-    "Only applicants holding a valid passing certificate / marksheet of their highest qualification are eligible. The certificate must be uploaded during registration.",
+    "The applicant must have passed at least Class 5 from a recognised school / board.",
+    "The applicant must be an Indian citizen holding a valid Aadhaar card.",
     "The applicant must be between 18 and 65 years of age and have a bank account in their own name.",
     "Incomplete forms, or forms with false information, will be rejected without notice.",
   ]],
   ["2. Registration", [
     "Registration is free. On successful registration the operator receives an Employee ID and password.",
-    "A cancelled cheque or the first page of the bank passbook must be uploaded as bank proof for payouts.",
+    "The following must be uploaded: Aadhaar card, bank passbook (first page) or cancelled cheque, passport size photo and signature.",
+    "Aadhaar details are used only to verify the operator's identity and are always displayed masked (XXXX XXXX 1234).",
   ]],
   ["3. Work methodology & technical requirements", [
     "All operators work strictly on a Work From Home basis.",
