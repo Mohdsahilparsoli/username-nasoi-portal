@@ -104,7 +104,7 @@ export default function HomePage() {
         <h2 className="text-2xl font-bold">Ready to start?</h2>
         <p className="mt-1 text-muted">Registration takes about 5 minutes.</p>
         <Button asChild className="mt-4" size="lg">
-          <Link href="/register"><UserPlus /> Register as Data Entry Operator</Link>
+          <Link href="/register"><UserPlus /> New Registration</Link>
         </Button>
       </section>
     </>

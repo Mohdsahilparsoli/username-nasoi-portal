@@ -23,9 +23,7 @@ export function SiteFooter() {
         <div>
           <h4 className="mb-2 font-semibold text-white">Portal</h4>
           <ul className="space-y-1.5">
-            <li><Link className="hover:text-white" href="/login?role=deo">DEO Login</Link></li>
-            <li><Link className="hover:text-white" href="/login?role=verifier">Verifier Login</Link></li>
-            <li><Link className="hover:text-white" href="/login?role=admin">Admin Login</Link></li>
+            <li><Link className="hover:text-white" href="/login">Login</Link></li>
             <li><Link className="hover:text-white" href="/register">New Registration</Link></li>
           </ul>
         </div>

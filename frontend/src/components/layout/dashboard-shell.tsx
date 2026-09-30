@@ -71,7 +71,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
   const hydrated = useSessionHydrated();
 
   useEffect(() => {
-    if (hydrated && !session) router.replace(`/login?role=${role}`);
+    if (hydrated && !session) router.replace("/login");
   }, [hydrated, session, role, router]);
 
   useEffect(() => setSidebar(false), [path, setSidebar]);
@@ -89,7 +89,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
 
   const logout = () => {
     signOut(role);
-    router.replace(`/login?role=${role}`);
+    router.replace("/login");
   };
 
   return (
@@ -136,9 +136,6 @@ export function DashboardShell({ role, children }: { role: Role; children: React
               <FileText className="size-[18px]" /> Terms &amp; Conditions
             </a>
           )}
-          <a href="/login" target="_blank" rel="noopener" className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">
-            <Users className="size-[18px]" /> Other role login
-          </a>
           <button type="button" onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">
             <LogOut className="size-[18px]" /> Logout
           </button>

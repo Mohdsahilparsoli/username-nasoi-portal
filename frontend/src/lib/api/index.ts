@@ -27,12 +27,16 @@ function genPassword(name: string) {
 /* Auth                                                               */
 /* ------------------------------------------------------------------ */
 
-/** POST /api/v1/auth/login */
-export async function login(role: Role, loginId: string, password: string): Promise<User> {
+/**
+ * POST /api/v1/auth/login
+ * Single login for every account. The role comes from the account itself,
+ * and the client opens that role's dashboard.
+ */
+export async function login(loginId: string, password: string): Promise<User> {
   await wait(400);
   const key = loginId.trim().toLowerCase();
   const u = getDb().users.find(
-    (x) => x.role === role && (x.id.toLowerCase() === key || x.mobile === key || x.email.toLowerCase() === key),
+    (x) => x.id.toLowerCase() === key || x.mobile === key || x.email.toLowerCase() === key,
   );
   if (!u || u.password !== password) throw new ApiError("Invalid ID / Mobile / Email or Password.");
   if (u.status === "blocked") throw new ApiError("This account has been blocked by the admin.");

@@ -686,7 +686,7 @@ function Success({ id, mobile, password }: { id: string; mobile: string; passwor
       <p className="mt-3 text-xs text-muted">Log in with the Registration ID, mobile number or email ID. The Super Admin will assign your work area shortly.</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button variant="light" onClick={copy}><Copy /> Copy details</Button>
-        <Button asChild><Link href={`/login?role=deo&id=${encodeURIComponent(id)}`}><LogIn /> Go to Login</Link></Button>
+        <Button asChild><Link href={`/login?id=${encodeURIComponent(id)}`}><LogIn /> Go to Login</Link></Button>
       </div>
     </Card>
   );
