@@ -2,10 +2,12 @@ import type { NextConfig } from "next";
 
 /**
  * The browser talks to same-origin /api/v1/*, which is proxied to the
- * Express backend. Set BACKEND_URL (e.g. https://api.nasoi.com) in the
- * environment; it is read at build time.
+ * Express backend. Default: https://nasoi-api.vercel.app (production) and
+ * http://localhost:4000 (local dev). Override with BACKEND_URL (read at
+ * build time) — later this becomes https://api.nasoi.com.
  */
-const backend = (process.env.BACKEND_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:4000")).replace(/\/$/, "");
+const DEFAULT_BACKEND = process.env.NODE_ENV === "production" ? "https://nasoi-api.vercel.app" : "http://localhost:4000";
+const backend = (process.env.BACKEND_URL || DEFAULT_BACKEND).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
