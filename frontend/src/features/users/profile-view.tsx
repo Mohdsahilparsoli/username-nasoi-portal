@@ -1,32 +1,33 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Landmark, Pencil, Save, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, FileText, ImageIcon, KeyRound, Landmark, Pencil, Save, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useMe } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/form-controls";
-import { Badge, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
+import { Alert, Badge, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
+import { authRaw } from "@/lib/api/auth";
+import { openDocument, type MyProfile } from "@/lib/api/registration";
+import { fmtDate, initials } from "@/lib/utils";
 import { RX, zMobile, zOptionalMobile } from "@/lib/validation";
-import { maskAadhaar } from "@/features/registration/schema";
-import { fmtDate, initials, maskAccount } from "@/lib/utils";
-import type { User } from "@/types";
-import { useMe } from "@/components/layout/dashboard-shell";
-import { useChangePassword, useUpdateUser, useUser } from "./hooks";
+import { useChangePassword, useMyProfile, useUpdateBank, useUpdateContact } from "./hooks";
 
 const contactSchema = z.object({
   mobile: zMobile,
   altMobile: zOptionalMobile,
-  email: z.string().trim().email("Enter a valid email"),
-  address: z.string().trim().min(10, "Enter full address"),
+  email: z.string().trim().max(80).email("Enter a valid email ID"),
+  address: z.string().trim().min(10, "Enter full address").max(200),
 });
 const bankSchema = z
   .object({
-    bankName: z.string().trim().min(3, "Required"),
-    holder: z.string().trim().min(3, "Required"),
+    bankName: z.string().trim().min(3, "Required").max(60),
+    holder: z.string().trim().min(3, "Required").max(60).regex(/^[A-Za-z][A-Za-z .'-]*$/, "Only letters and spaces"),
     account: z.string().regex(RX.account, "9–18 digit account number"),
     account2: z.string(),
     ifsc: z.string().trim().toUpperCase().regex(RX.ifsc, "Invalid IFSC code"),
@@ -47,9 +48,20 @@ const pwSchema = z
 
 const digits = { onChange: (e: React.ChangeEvent<HTMLInputElement>) => (e.target.value = e.target.value.replace(/\D/g, "")) };
 
-export function ProfileView({ userId, withBank }: { userId: string; withBank?: boolean }) {
-  const { data: u, isLoading } = useUser(userId);
-  if (isLoading || !u) return <Skeleton className="h-96" />;
+const DOC_LABEL: Record<string, string> = {
+  aadhaar: "Aadhaar Card",
+  pan: "PAN Card",
+  bank_proof: "Bank Passbook / Cancelled Cheque",
+  photo: "Passport Size Photo",
+  signature: "Signature",
+};
+const ROLE_LABEL = { deo: "Data Entry Operator", verifier: "Verifier", admin: "Super Admin" } as const;
+
+export function ProfileView({ withBank }: { withBank?: boolean }) {
+  const { data: u, isLoading, error } = useMyProfile();
+  if (isLoading) return <Skeleton className="h-96" />;
+  if (error || !u) return <Alert tone="red">{(error as Error)?.message ?? "Could not load your profile."}</Alert>;
+  const p = u.profile;
 
   return (
     <>
@@ -58,59 +70,87 @@ export function ProfileView({ userId, withBank }: { userId: string; withBank?: b
         <Card>
           <CardHeader title="Personal details" action={<Badge tone={u.status === "active" ? "green" : "red"}>{u.status === "active" ? "Active" : "Blocked"}</Badge>} />
           <CardBody className="flex flex-col gap-6 sm:flex-row">
-            {u.photo ? (
-              <div className="flex shrink-0 flex-col gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={u.photo} alt="" className="h-32 w-26 rounded-lg border border-line object-cover" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {u.signature && <img src={u.signature} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
-              </div>
-            ) : (
-              <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>
-            )}
+            <PhotoBlock u={u} />
             <DetailGrid
               className="flex-1"
               items={[
-                ["Registration ID", u.id], ["Name", u.name], ["Father's Name", u.fatherName], ["Mother's Name", u.motherName],
-                ["Date of Birth", fmtDate(u.dob)], ["Gender", u.gender], ["Category", u.category], ["Qualification", u.qualification],
-                ["Religion", u.religion], ["Aadhaar Number", maskAadhaar(u.aadhaar)], ["PAN Number", u.pan], ["Registered on", fmtDate(u.joinedAt)],
+                ["Registration ID", u.id], ["Name", u.name], ["Role", ROLE_LABEL[u.role]], ["Registered on", fmtDate(u.joinedAt)],
+                ...(p
+                  ? ([
+                      ["Father's Name", p.fatherName], ["Mother's Name", p.motherName], ["Date of Birth", fmtDate(p.dob)],
+                      ["Gender", p.gender], ["Category", p.category], ["Religion", p.religion], ["Qualification", p.qualification],
+                      ["Aadhaar Number", p.aadhaar], ["PAN Number", p.pan ?? "—"],
+                    ] as [string, string][])
+                  : []),
               ]}
             />
           </CardBody>
         </Card>
         <ContactCard u={u} />
-        {withBank && <BankCard u={u} />}
+        {withBank && p && <BankCard u={u} />}
+        {u.documents.length > 0 && <DocumentsCard u={u} />}
         <PasswordCard />
       </div>
     </>
   );
 }
 
-function ContactCard({ u }: { u: User }) {
+/** Photo and signature are fetched with the access token and shown from memory. */
+function PhotoBlock({ u }: { u: MyProfile }) {
+  const { role } = useMe();
+  const photo = u.documents.find((d) => d.kind === "photo");
+  const sign = u.documents.find((d) => d.kind === "signature");
+  const { data: urls } = useQuery({
+    queryKey: ["my-photo", photo?.id, sign?.id],
+    enabled: !!photo,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const load = async (id?: string) => (id ? URL.createObjectURL(await (await authRaw(role, `/documents/${id}`)).blob()) : undefined);
+      return { photo: await load(photo?.id), sign: await load(sign?.id) };
+    },
+  });
+  if (!urls?.photo) {
+    return <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>;
+  }
+  return (
+    <div className="flex shrink-0 flex-col gap-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={urls.photo} alt="Photo" className="h-32 w-26 rounded-lg border border-line object-cover" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {urls.sign && <img src={urls.sign} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
+    </div>
+  );
+}
+
+function ContactCard({ u }: { u: MyProfile }) {
   const [editing, setEditing] = useState(false);
-  const update = useUpdateUser(u.id);
+  const update = useUpdateContact();
+  const p = u.profile;
   const form = useForm<z.input<typeof contactSchema>>({
     resolver: zodResolver(contactSchema),
-    values: { mobile: u.mobile, altMobile: u.altMobile ?? "", email: u.email, address: u.address ?? "" },
+    values: { mobile: u.mobile ?? "", altMobile: p?.altMobile ?? "", email: u.email ?? "", address: p?.address ?? "" },
   });
   const e = form.formState.errors;
   const save = form.handleSubmit((v) =>
     update.mutate(v, {
       onSuccess: () => { toast.success("Contact details updated."); setEditing(false); },
-      onError: (err) => form.setError("mobile", { message: err.message }),
+      onError: (err) => form.setError(/email/i.test(err.message) ? "email" : "mobile", { message: err.message }),
     }),
   );
   return (
     <Card>
-      <CardHeader title="Contact details" action={!editing && <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil /> Edit</Button>} />
+      <CardHeader title="Contact details" action={!editing && p && <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil /> Edit</Button>} />
       <CardBody>
         {!editing ? (
           <DetailGrid
             items={[
-              ["Mobile Number", u.mobile], ["Alternate Mobile", u.altMobile], ["Email ID", u.email],
-              ["State / District", [u.state, u.district].filter(Boolean).join(" / ")], ["Sub District", u.tehsil],
-              ["Post Office / PIN", [u.postOffice, u.pincode].filter(Boolean).join(" / ")], ["Police Station", u.policeStation],
-              ["Full Address", u.address],
+              ["Mobile Number", u.mobile ?? "—"], ["Alternate Mobile", p?.altMobile ?? "—"], ["Email ID", u.email ?? "—"],
+              ...(p
+                ? ([
+                    ["State / District", `${p.state} / ${p.district}`], ["Sub District", p.subDistrict],
+                    ["Post Office / PIN", `${p.postOffice} / ${p.pincode}`], ["Police Station", p.policeStation], ["Full Address", p.address],
+                  ] as [string, string][])
+                : []),
             ]}
           />
         ) : (
@@ -130,18 +170,22 @@ function ContactCard({ u }: { u: User }) {
   );
 }
 
-function BankCard({ u }: { u: User }) {
+function BankCard({ u }: { u: MyProfile }) {
   const [editing, setEditing] = useState(false);
-  const update = useUpdateUser(u.id);
+  const update = useUpdateBank();
+  const b = u.profile!.bank;
   const form = useForm<z.input<typeof bankSchema>>({
     resolver: zodResolver(bankSchema),
-    defaultValues: { bankName: u.bank?.bankName ?? "", holder: u.bank?.holder ?? "", account: "", account2: "", ifsc: u.bank?.ifsc ?? "" },
+    defaultValues: { bankName: b.bankName, holder: b.accountHolder, account: "", account2: "", ifsc: b.ifsc },
   });
   const e = form.formState.errors;
   const save = form.handleSubmit((v) =>
     update.mutate(
-      { bank: { bankName: v.bankName, holder: v.holder.toUpperCase(), account: v.account, ifsc: v.ifsc.toUpperCase() } },
-      { onSuccess: () => { toast.success("Bank details updated."); setEditing(false); form.reset({ ...v, account: "", account2: "" }); } },
+      { bankName: v.bankName, accountHolder: v.holder.toUpperCase(), accountNumber: v.account, ifsc: v.ifsc.toUpperCase() },
+      {
+        onSuccess: () => { toast.success("Bank details updated."); setEditing(false); form.reset({ ...v, account: "", account2: "" }); },
+        onError: (err) => toast.error(err.message),
+      },
     ),
   );
   return (
@@ -149,7 +193,7 @@ function BankCard({ u }: { u: User }) {
       <CardHeader title={<span className="flex items-center gap-2"><Landmark className="size-4 text-primary" /> Banking details</span>} action={!editing && <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil /> Update</Button>} />
       <CardBody>
         {!editing ? (
-          <DetailGrid items={[["Bank Name", u.bank?.bankName], ["Account Holder Name", u.bank?.holder], ["Account Number", maskAccount(u.bank?.account)], ["IFSC Code", u.bank?.ifsc], ...(u.bankDocName ? ([[`Bank Proof (${u.bankDocType})`, u.bankDocName]] as [string, string][]) : [])]} />
+          <DetailGrid items={[["Bank Name", b.bankName], ["Account Holder Name", b.accountHolder], ["Account Number", b.account], ["IFSC Code", b.ifsc], ["Bank Proof", b.proofType]]} />
         ) : (
           <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-2">
             <Field label="Bank Name" htmlFor="b-bank" error={e.bankName?.message}><Input id="b-bank" {...form.register("bankName")} /></Field>
@@ -164,6 +208,38 @@ function BankCard({ u }: { u: User }) {
           </form>
         )}
       </CardBody>
+    </Card>
+  );
+}
+
+function DocumentsCard({ u }: { u: MyProfile }) {
+  const { role } = useMe();
+  const order = ["aadhaar", "pan", "bank_proof", "photo", "signature"];
+  const docs = [...u.documents].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  return (
+    <Card>
+      <CardHeader title="Uploaded documents" />
+      <ul className="divide-y divide-line">
+        {docs.map((d) => {
+          const Icon = d.mimeType.startsWith("image/") ? ImageIcon : FileText;
+          return (
+            <li key={d.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-success-soft text-success"><Icon className="size-[18px]" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-navy">{DOC_LABEL[d.kind] ?? d.kind}</p>
+                <p className="truncate text-xs text-muted">{d.fileName} · {(d.size / 1024).toFixed(0)} KB</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openDocument(role, d.id).catch((e) => toast.error((e as Error).message))}
+              >
+                <ExternalLink /> View
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
     </Card>
   );
 }
@@ -186,9 +262,9 @@ function PasswordCard() {
     <Card>
       <CardHeader title={<span className="flex items-center gap-2"><KeyRound className="size-4 text-primary" /> Change password</span>} />
       <form onSubmit={save} noValidate className="grid gap-4 p-5 sm:grid-cols-3">
-        <Field label="Current password" htmlFor="pw-old" error={e.old?.message}><Input id="pw-old" type="password" {...form.register("old")} /></Field>
-        <Field label="New password" htmlFor="pw-new" error={e.pw?.message}><Input id="pw-new" type="password" {...form.register("pw")} /></Field>
-        <Field label="Confirm new password" htmlFor="pw-new2" error={e.pw2?.message}><Input id="pw-new2" type="password" {...form.register("pw2")} /></Field>
+        <Field label="Current password" htmlFor="pw-old" error={e.old?.message}><Input id="pw-old" type="password" autoComplete="current-password" {...form.register("old")} /></Field>
+        <Field label="New password" htmlFor="pw-new" error={e.pw?.message}><Input id="pw-new" type="password" autoComplete="new-password" {...form.register("pw")} /></Field>
+        <Field label="Confirm new password" htmlFor="pw-new2" error={e.pw2?.message}><Input id="pw-new2" type="password" autoComplete="new-password" {...form.register("pw2")} /></Field>
         <div className="sm:col-span-3"><Button type="submit" disabled={change.isPending}>Change password</Button></div>
       </form>
     </Card>

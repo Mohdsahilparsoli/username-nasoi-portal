@@ -1,7 +1,7 @@
 "use client";
 
-import { CircleCheck, ExternalLink, FileText, ImageIcon, RefreshCw, Upload, X } from "lucide-react";
-import { useId, useRef } from "react";
+import { CircleCheck, ExternalLink, FileText, ImageIcon, LoaderCircle, RefreshCw, Upload, X } from "lucide-react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export function FileUpload({
   fileName,
   accept,
   maxMb = 2,
+  maxPdfMb,
   hint,
   invalid,
   kind = "document",
@@ -23,6 +24,8 @@ export function FileUpload({
   fileName?: string;
   accept: string;
   maxMb?: number;
+  /** Separate limit for PDF files (images are compressed before upload, PDFs are not). */
+  maxPdfMb?: number;
   hint: string;
   invalid?: boolean;
   kind?: "image" | "document";
@@ -34,15 +37,23 @@ export function FileUpload({
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const Icon = kind === "image" ? ImageIcon : FileText;
+  const [busy, setBusy] = useState(false);
 
   const pick = async (f?: File) => {
-    if (!f) return;
+    if (!f || busy) return;
     const allowed = accept.split(",").map((a) => a.trim().toLowerCase());
     const ext = "." + (f.name.split(".").pop() ?? "").toLowerCase();
     const ok = allowed.some((a) => a === f.type.toLowerCase() || a === ext);
     if (!ok) return toast.error("This file type is not allowed.");
-    if (f.size > maxMb * 1024 * 1024) return toast.error(`File must be under ${maxMb} MB.`);
-    await onFile(f);
+    const isPdf = ext === ".pdf" || f.type === "application/pdf";
+    const limit = isPdf && maxPdfMb ? maxPdfMb : maxMb;
+    if (f.size > limit * 1024 * 1024) return toast.error(`${isPdf ? "PDF" : "File"} must be under ${limit} MB.`);
+    setBusy(true);
+    try {
+      await onFile(f);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -58,7 +69,14 @@ export function FileUpload({
           e.target.value = "";
         }}
       />
-      {fileName ? (
+      {busy ? (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary-soft/40 px-4 py-3" aria-live="polite">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-primary">
+            <LoaderCircle className="size-5 animate-spin" />
+          </span>
+          <p className="text-sm font-semibold text-navy">Uploading…</p>
+        </div>
+      ) : fileName ? (
         <div className="flex items-center gap-3 rounded-lg border border-success/40 bg-success-soft/50 px-4 py-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-success">
             <Icon className="size-5" />

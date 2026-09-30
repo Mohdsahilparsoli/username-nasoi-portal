@@ -14,6 +14,7 @@ export class AuthError extends Error {
     message: string,
     public status = 0,
     public code = "ERROR",
+    public fields?: { path: string; message: string }[],
   ) {
     super(message);
   }
@@ -37,24 +38,31 @@ const BASE = "/api/v1";
 const tokens: Partial<Record<Role, { token: string; exp: number }>> = {};
 const inflight: Partial<Record<Role, Promise<TokenResponse>>> = {};
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** Low-level call to the NASOI API. JSON bodies get a JSON content type; FormData is sent as-is. */
+async function raw(path: string, init: RequestInit = {}): Promise<Response> {
+  const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       ...init,
       credentials: "same-origin",
       cache: "no-store",
-      headers: { "content-type": "application/json", "x-nasoi-client": "web", ...init.headers },
+      headers: { ...(isForm ? {} : { "content-type": "application/json" }), "x-nasoi-client": "web", ...init.headers },
     });
   } catch {
     throw new AuthError("Unable to reach the server. Please check your internet connection.", 0, "NETWORK");
   }
-  const body = await res.json().catch(() => null);
   if (!res.ok) {
+    const body = await res.json().catch(() => null);
     const e = body?.error;
-    throw new AuthError(e?.message ?? `Server error (${res.status}). Please try again.`, res.status, e?.code);
+    const msg = e?.message ?? (res.status === 413 ? "File is too large." : `Server error (${res.status}). Please try again.`);
+    throw new AuthError(msg, res.status, e?.code, e?.fields);
   }
-  return body as T;
+  return res;
+}
+
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await raw(path, init)).json() as Promise<T>;
 }
 
 function keep(r: TokenResponse) {
@@ -86,7 +94,21 @@ export async function accessToken(role: Role) {
   return (await refresh(role)).accessToken;
 }
 
-/** Authenticated request; retries once after a refresh if the token was rejected. */
+/** Authenticated raw response (e.g. a file); retries once after a refresh if the token was rejected. */
+export async function authRaw(role: Role, path: string, init: RequestInit = {}): Promise<Response> {
+  const call = async () => raw(path, { ...init, headers: { ...init.headers, authorization: `Bearer ${await accessToken(role)}` } });
+  try {
+    return await call();
+  } catch (e) {
+    if (e instanceof AuthError && e.status === 401 && e.code === "TOKEN_EXPIRED") {
+      delete tokens[role];
+      return call();
+    }
+    throw e;
+  }
+}
+
+/** Authenticated JSON request; retries once after a refresh if the token was rejected. */
 export async function authRequest<T>(role: Role, path: string, init: RequestInit = {}): Promise<T> {
   const call = async () => request<T>(path, { ...init, headers: { ...init.headers, authorization: `Bearer ${await accessToken(role)}` } });
   try {

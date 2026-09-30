@@ -23,16 +23,29 @@ export function isValidAadhaar(n: string) {
 }
 export const maskAadhaar = (n?: string) => (n && n.length === 12 ? `XXXX XXXX ${n.slice(-4)}` : "—");
 
+export const REGISTER_AS = [
+  { value: "deo", label: "Data Entry Operator (DEO)", hint: "Enter school & student records in your assigned area" },
+  { value: "verifier", label: "Verifier (VR)", hint: "Check and approve records entered by operators" },
+] as const;
+
+/** Same rules as the server (nasoi-backend). */
+const personName = (label: string) =>
+  zRequired(label, 3).max(60, `${label} is too long`).regex(/^[A-Za-z][A-Za-z .'-]*$/, `${label} can contain only letters and spaces`);
+const shortText = (label: string) => zRequired(label, 2).max(60, `${label} is too long`);
+
+export const PASSWORD_HINT = "At least 8 characters, with letters and numbers";
+
 /** One Zod schema per step – each step is validated on its own before moving on. */
 export const personalSchema = z.object({
-  name: zRequired("Candidate full name", 3),
-  fatherName: zRequired("Father's name", 3),
-  motherName: zRequired("Mother's name", 3),
+  role: z.enum(["deo", "verifier"], { error: "Choose Data Entry Operator or Verifier" }),
+  name: personName("Candidate full name"),
+  fatherName: personName("Father's name"),
+  motherName: personName("Mother's name"),
   dob: zRequired("Date of birth").refine((v) => {
     const age = (Date.now() - new Date(v).getTime()) / (365.25 * 86400000);
     return age >= 18 && age <= 65;
   }, "You must be between 18 and 65 years old"),
-  email: z.string().trim().email("Enter a valid email ID"),
+  email: z.string().trim().max(80, "Email ID is too long").email("Enter a valid email ID"),
   mobile: zMobile,
   gender: z.string().min(1, "Select gender"),
   category: z.string().min(1, "Select category"),
@@ -43,17 +56,17 @@ export const addressSchema = z.object({
   country: z.string().min(1, "Select country"),
   state: z.string().min(1, "Select state / union territory"),
   district: z.string().min(1, "Select district"),
-  tehsil: zRequired("Sub district"),
-  postOffice: zRequired("Post office name"),
+  tehsil: shortText("Sub district"),
+  postOffice: shortText("Post office name"),
   pincode: zPincode,
-  policeStation: zRequired("Police station name"),
-  address: zRequired("Full address", 10),
+  policeStation: shortText("Police station name"),
+  address: zRequired("Full address", 10).max(200, "Full address is too long"),
 });
 
 export const bankSchema = z
   .object({
-    bankName: zRequired("Bank name", 3),
-    holder: zRequired("Account holder name", 3),
+    bankName: zRequired("Bank name", 3).max(60, "Bank name is too long"),
+    holder: personName("Account holder name"),
     account: z.string().regex(RX.account, "Account number should be 9–18 digits"),
     account2: z.string().min(1, "Please re-enter the account number"),
     ifsc: z.string().trim().toUpperCase().regex(RX.ifsc, "Enter a valid 11-character IFSC code (e.g. SBIN0001234)"),
@@ -82,10 +95,19 @@ export const documentsSchema = z.object({
   if (!v.pan && v.panDocName) ctx.addIssue({ code: "custom", path: ["pan"], message: "Enter the PAN number for the uploaded card" });
 });
 
-export const declarationSchema = z.object({
-  declare: mustTick("Please accept the declaration"),
-  terms: mustTick("Please accept the Terms & Conditions"),
-});
+export const declarationSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(72, "Password must be at most 72 characters")
+      .regex(/[A-Za-z]/, "Password must contain a letter")
+      .regex(/\d/, "Password must contain a number"),
+    password2: z.string().min(1, "Please re-enter the password"),
+    declare: mustTick("Please accept the declaration"),
+    terms: mustTick("Please accept the Terms & Conditions"),
+  })
+  .refine((v) => v.password === v.password2, { path: ["password2"], message: "Passwords do not match" });
 
 export const STEP_SCHEMAS = [personalSchema, addressSchema, bankSchema, documentsSchema, declarationSchema] as const;
 
@@ -104,10 +126,12 @@ export type RegistrationForm = z.input<typeof personalSchema> &
   z.input<typeof declarationSchema>;
 
 export const EMPTY_FORM: RegistrationForm = {
+  role: "" as "deo",
   name: "", fatherName: "", motherName: "", dob: "", email: "", mobile: "", gender: "", category: "", religion: "",
   country: "India", state: "", district: "", tehsil: "", postOffice: "", pincode: "", policeStation: "", address: "",
   bankName: "", holder: "", account: "", account2: "", ifsc: "",
   qualification: "", aadhaar: "", aadhaarDocName: "", pan: "", panDocName: "", bankDocType: "", bankDocName: "",
   photoName: "", photo: "", signatureName: "", signature: "",
+  password: "", password2: "",
   declare: false, terms: false,
 };

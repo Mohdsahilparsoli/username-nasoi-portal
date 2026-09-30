@@ -7,15 +7,16 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Badge, PageHeader, Skeleton, StatCard } from "@/components/ui/misc";
 import { useEntries } from "@/features/entries/hooks";
 import { useSettings } from "@/features/settings/hooks";
-import { useUser } from "@/features/users/hooks";
-import { fmtMonth, maskAccount, money, monthKey, monthlyHistory, statsOf } from "@/lib/utils";
+import { useMyProfile } from "@/features/users/hooks";
+import { fmtMonth, money, monthKey, monthlyHistory, statsOf } from "@/lib/utils";
 
 const PAYOUT_TONE = { Paid: "green", "In progress": "blue", "Under verification": "amber" } as const;
 
 export default function EarningsPage() {
   const me = useMe();
   const entries = useEntries(me.id);
-  const user = useUser(me.id);
+  const profile = useMyProfile();
+  const bank = profile.data?.profile?.bank;
   const settings = useSettings();
   if (entries.isLoading) return <Skeleton className="h-96" />;
 
@@ -39,7 +40,7 @@ export default function EarningsPage() {
         </div>
         <div className="text-right">
           <p className="text-sm text-slate-300">Payout credited to</p>
-          <p className="font-semibold">{user.data?.bank ? `${user.data.bank.bankName} • ${maskAccount(user.data.bank.account)}` : "—"}</p>
+          <p className="font-semibold">{bank ? `${bank.bankName} • ${bank.account}` : "—"}</p>
           <p className="text-sm text-slate-300">Paid between {settings.data?.payoutWindow ?? "15th – 25th of every month"}</p>
         </div>
       </div>

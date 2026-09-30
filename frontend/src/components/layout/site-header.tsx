@@ -15,6 +15,9 @@ const NAV = [
 ];
 
 export function DemoStrip() {
+  const path = usePathname();
+  // The registration form is live: no demo notice there.
+  if (path?.startsWith("/register")) return null;
   return (
     <div className="bg-navy px-4 py-1.5 text-center text-xs text-white">
       Demo project – sample data only. Not a real organisation. No fees are collected.

@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, ExternalLink, FileText, ImageIcon, Info, LogIn, Pencil, Send, ShieldCheck, TriangleAlert, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleCheck, ClipboardList, Copy, ExternalLink, FileText, ImageIcon, Info, KeyRound, LogIn, Pencil, Send, ShieldCheck, UserCheck } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,46 +14,97 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { ChoiceGroup, Field, Input, Select, Textarea } from "@/components/ui/form-controls";
 import { DistrictOptions, StateOptions } from "@/components/ui/location-options";
 import { Alert } from "@/components/ui/misc";
-import * as api from "@/lib/api";
+import { AuthError } from "@/lib/api/auth";
+import { submitRegistration, uploadDocument, type DocumentKind, type RegistrationPayload, type UploadRef } from "@/lib/api/registration";
 import { CATEGORIES, COUNTRIES, GENDERS, QUALIFICATIONS, RELIGIONS } from "@/lib/constants";
 import { cn, fmtDate, maskAccount } from "@/lib/utils";
-import { BANK_DOC_TYPES, EMPTY_FORM, maskAadhaar, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
+import { BANK_DOC_TYPES, EMPTY_FORM, maskAadhaar, PASSWORD_HINT, REGISTER_AS, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
 
-const DRAFT_KEY = "nasoi_registration_draft_v4";
+const DRAFT_KEY = "nasoi_registration_draft_v5";
 
-/** Uploaded files, kept in memory so they can be opened in a new tab from the preview. */
+/** Uploaded files: sent to the server as soon as they are chosen; kept in memory for "View". */
 type DocKey = "aadhaarDocName" | "panDocName" | "bankDocName" | "photoName" | "signatureName";
+const DOC_KIND: Record<DocKey, DocumentKind> = {
+  aadhaarDocName: "aadhaar",
+  panDocName: "pan",
+  bankDocName: "bank_proof",
+  photoName: "photo",
+  signatureName: "signature",
+};
+/** Longest side (px) images are reduced to before upload. */
+const MAX_SIDE: Record<DocKey, number> = { aadhaarDocName: 1800, panDocName: 1800, bankDocName: 1800, photoName: 600, signatureName: 800 };
 const IMG = "image/png,image/jpeg,.png,.jpg,.jpeg";
-const DOC = ".pdf,image/png,image/jpeg,.png,.jpg,.jpeg";
+const DOC = ".pdf,application/pdf,image/png,image/jpeg,.png,.jpg,.jpeg";
+const MAX_BYTES = 2 * 1024 * 1024;
 
-/** Resize an image to a small JPEG (kept for the final preview and profile). */
-function toThumbnail(file: File, size: number): Promise<string> {
+/** Where each server field lives in the form: [step, form field]. */
+const SERVER_FIELD: Record<string, [number, keyof RegistrationForm]> = {
+  role: [0, "role"], name: [0, "name"], fatherName: [0, "fatherName"], motherName: [0, "motherName"], dob: [0, "dob"],
+  email: [0, "email"], mobile: [0, "mobile"], gender: [0, "gender"], category: [0, "category"], religion: [0, "religion"],
+  country: [1, "country"], state: [1, "state"], district: [1, "district"], subDistrict: [1, "tehsil"], postOffice: [1, "postOffice"],
+  pincode: [1, "pincode"], policeStation: [1, "policeStation"], address: [1, "address"],
+  bankName: [2, "bankName"], accountHolder: [2, "holder"], accountNumber: [2, "account"], ifsc: [2, "ifsc"],
+  qualification: [3, "qualification"], aadhaar: [3, "aadhaar"], pan: [3, "pan"], bankProofType: [3, "bankDocType"],
+  "documents.aadhaar": [3, "aadhaarDocName"], "documents.pan": [3, "panDocName"], "documents.bank_proof": [3, "bankDocName"],
+  "documents.photo": [3, "photoName"], "documents.signature": [3, "signatureName"],
+  password: [4, "password"], declaration: [4, "declare"], terms: [4, "terms"],
+};
+const CODE_FIELD: Record<string, string> = { DUPLICATE_MOBILE: "mobile", DUPLICATE_EMAIL: "email", DUPLICATE_AADHAAR: "aadhaar" };
+
+function loadImage(file: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, size / Math.max(img.width, img.height));
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.width * scale);
-      c.height = Math.round(img.height * scale);
-      const ctx = c.getContext("2d")!;
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(img.src);
-      resolve(c.toDataURL("image/jpeg", 0.82));
-    };
-    img.onerror = reject;
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("This image could not be read. Please choose another file."));
     img.src = URL.createObjectURL(file);
   });
 }
 
+/** Draws an image on white, scaled so its longest side is at most `side` px. */
+function draw(img: HTMLImageElement, side: number) {
+  const scale = Math.min(1, side / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(img.width * scale));
+  c.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+
+/** Images are resized and saved as JPEG (small, fast upload); PDFs are sent as they are. */
+async function prepareFile(file: File, key: DocKey): Promise<{ blob: Blob; name: string; thumb?: string }> {
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (isPdf) {
+    if (file.size > MAX_BYTES) throw new Error("PDF must be under 2 MB.");
+    return { blob: file, name: file.name };
+  }
+  const img = await loadImage(file);
+  try {
+    const canvas = draw(img, MAX_SIDE[key]);
+    let blob: Blob | null = null;
+    for (const q of [0.85, 0.7, 0.55]) {
+      blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", q));
+      if (blob && blob.size <= MAX_BYTES) break;
+    }
+    if (!blob || blob.size > MAX_BYTES) throw new Error("Image is too large. Please choose a smaller file.");
+    const thumb = key === "photoName" || key === "signatureName" ? draw(img, key === "photoName" ? 240 : 360).toDataURL("image/jpeg", 0.82) : undefined;
+    return { blob, name: file.name.replace(/\.[^.]*$/, "") + ".jpg", thumb };
+  } finally {
+    URL.revokeObjectURL(img.src);
+  }
+}
+
 export function RegisterWizard() {
+  const params = useSearchParams();
   const [step, setStep] = useState(0);
   const stepRef = useRef(0);
   stepRef.current = step;
-  const [done, setDone] = useState<{ id: string; mobile: string; password: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; role: "deo" | "verifier"; name: string } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [fileUrls, setFileUrls] = useState<Partial<Record<DocKey, string>>>({});
+  const [uploads, setUploads] = useState<Partial<Record<DocKey, UploadRef>>>({});
   const topRef = useRef<HTMLDivElement>(null);
 
   // Validate only the current step's schema.
@@ -61,31 +113,35 @@ export function RegisterWizard() {
 
   // Errors appear when "Next" is pressed, then update live while the user fixes them.
   const form = useForm<RegistrationForm>({ resolver, defaultValues: EMPTY_FORM, mode: "onSubmit", reValidateMode: "onChange" });
-  const { register, formState: { errors }, watch, setValue, getValues, reset } = form;
+  const { register, formState: { errors }, watch, setValue, getValues, reset, setError } = form;
   const v = watch();
 
-  // Restore draft once, then keep saving it while the user types.
+  // Restore draft once (or pre-select the role from ?as=verifier), then keep saving while the user types.
   useEffect(() => {
+    const as = params.get("as");
+    const preset = as === "verifier" || as === "deo" ? as : undefined;
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw) as { values: RegistrationForm; step: number };
-        // Files cannot be kept in a draft, so uploads must be done again.
+        // Files, passwords, Aadhaar and account numbers are never kept in a draft.
         reset({
-          ...EMPTY_FORM, ...d.values, account: "", account2: "", aadhaar: "",
+          ...EMPTY_FORM, ...d.values, ...(preset ? { role: preset } : {}),
+          account: "", account2: "", aadhaar: "", password: "", password2: "",
           aadhaarDocName: "", panDocName: "", bankDocName: "", photoName: "", photo: "", signatureName: "", signature: "",
         });
         setStep(Math.min(d.step, STEPS.length - 1));
         setDraftLoaded(true);
+        return;
       }
     } catch { /* ignore broken draft */ }
-  }, [reset]);
+    if (preset) setValue("role", preset);
+  }, [reset, setValue, params]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/incompatible-library
     const sub = watch((values) => {
-      // Bank account and Aadhaar numbers are never kept in the draft.
-      const { account: _a, account2: _b, aadhaar: _c, ...safe } = values as RegistrationForm;
+      const { account: _a, account2: _b, aadhaar: _c, password: _d, password2: _e, ...safe } = values as RegistrationForm;
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ values: safe, step: stepRef.current })); } catch { /* quota */ }
     });
     return () => sub.unsubscribe();
@@ -102,13 +158,22 @@ export function RegisterWizard() {
     requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
-  /** Keep the chosen file (for "View") and put its name in the form. */
-  const attach = (key: DocKey, file: File | Blob, name: string) => {
-    setFileUrls((prev) => {
-      if (prev[key]) URL.revokeObjectURL(prev[key]!);
-      return { ...prev, [key]: URL.createObjectURL(file) };
-    });
-    setValue(key, name, { shouldValidate: true });
+  /** Compress (images), upload to the server, and keep a local copy for "View". */
+  const attach = async (key: DocKey, file: File) => {
+    try {
+      const prepared = await prepareFile(file, key);
+      const ref = await uploadDocument(DOC_KIND[key], prepared.blob, prepared.name);
+      setUploads((prev) => ({ ...prev, [key]: ref }));
+      setFileUrls((prev) => {
+        if (prev[key]) URL.revokeObjectURL(prev[key]!);
+        return { ...prev, [key]: URL.createObjectURL(prepared.blob) };
+      });
+      if (key === "photoName") setValue("photo", prepared.thumb ?? "");
+      if (key === "signatureName") setValue("signature", prepared.thumb ?? "");
+      setValue(key, file.name, { shouldValidate: true });
+    } catch (e) {
+      toast.error((e as Error).message || "Upload failed. Please try again.");
+    }
   };
   const detach = (key: DocKey) => {
     setFileUrls((prev) => {
@@ -116,6 +181,11 @@ export function RegisterWizard() {
       const nextUrls = { ...prev };
       delete nextUrls[key];
       return nextUrls;
+    });
+    setUploads((prev) => {
+      const nextRefs = { ...prev };
+      delete nextRefs[key];
+      return nextRefs;
     });
     setValue(key, "", { shouldValidate: true });
     if (key === "photoName") setValue("photo", "");
@@ -132,6 +202,22 @@ export function RegisterWizard() {
     () => toast.error("Please fix the highlighted fields."),
   );
 
+  /** Show a server-side problem on the right field and open its step. */
+  const showServerError = (e: unknown) => {
+    const err = e instanceof AuthError ? e : null;
+    const path = err?.fields?.[0]?.path ?? (err ? CODE_FIELD[err.code] : undefined);
+    const target = path ? SERVER_FIELD[path] : undefined;
+    if (err?.code === "BAD_DOCUMENT") {
+      // An upload expired or was already used: ask for all documents again.
+      (Object.keys(DOC_KIND) as DocKey[]).forEach(detach);
+      goTo(3);
+    } else if (target) {
+      goTo(target[0]);
+      setTimeout(() => setError(target[1], { message: err!.fields?.[0]?.message ?? err!.message }), 50);
+    }
+    toast.error(err?.message ?? (e as Error).message ?? "Registration failed. Please try again.");
+  };
+
   const submit = useMutation({
     mutationFn: async (values: RegistrationForm) => {
       // Final safety check: every step must be valid.
@@ -141,58 +227,41 @@ export function RegisterWizard() {
           throw new Error(`Please complete "${STEPS[i].title}".`);
         }
       }
-      return api.registerDeo({
-        name: values.name.trim().toUpperCase(),
-        fatherName: values.fatherName.trim().toUpperCase(),
-        motherName: values.motherName.trim().toUpperCase(),
-        dob: values.dob, gender: values.gender, category: values.category, religion: values.religion,
-        mobile: values.mobile, email: values.email.trim(),
-        country: values.country, state: values.state, district: values.district, tehsil: values.tehsil,
-        postOffice: values.postOffice, pincode: values.pincode, policeStation: values.policeStation, address: values.address,
-        bank: { bankName: values.bankName, holder: values.holder.toUpperCase(), account: values.account, ifsc: values.ifsc.toUpperCase() },
-        qualification: values.qualification,
-        aadhaar: values.aadhaar, aadhaarDocName: values.aadhaarDocName,
-        pan: values.pan ? values.pan.toUpperCase() : undefined, panDocName: values.panDocName || undefined,
-        bankDocType: values.bankDocType, bankDocName: values.bankDocName,
-        photo: values.photo, photoName: values.photoName, signature: values.signature, signatureName: values.signatureName,
-      });
+      const need: DocKey[] = ["aadhaarDocName", "bankDocName", "photoName", "signatureName", ...(values.pan ? (["panDocName"] as DocKey[]) : [])];
+      const missing = need.find((k) => !uploads[k]);
+      if (missing) {
+        goTo(3);
+        detach(missing);
+        throw new Error("Please upload the highlighted document again.");
+      }
+      const payload: RegistrationPayload = {
+        role: values.role,
+        name: values.name.trim(), fatherName: values.fatherName.trim(), motherName: values.motherName.trim(),
+        dob: values.dob, email: values.email.trim(), mobile: values.mobile,
+        gender: values.gender, category: values.category, religion: values.religion,
+        country: values.country, state: values.state, district: values.district, subDistrict: values.tehsil.trim(),
+        postOffice: values.postOffice.trim(), pincode: values.pincode, policeStation: values.policeStation.trim(), address: values.address.trim(),
+        bankName: values.bankName.trim(), accountHolder: values.holder.trim(), accountNumber: values.account, ifsc: values.ifsc.trim().toUpperCase(),
+        qualification: values.qualification, aadhaar: values.aadhaar, pan: values.pan ? values.pan.toUpperCase() : undefined,
+        bankProofType: values.bankDocType,
+        documents: {
+          aadhaar: uploads.aadhaarDocName!,
+          ...(values.pan ? { pan: uploads.panDocName! } : {}),
+          bank_proof: uploads.bankDocName!,
+          photo: uploads.photoName!,
+          signature: uploads.signatureName!,
+        },
+        password: values.password, declaration: true, terms: true,
+      };
+      return submitRegistration(payload);
     },
-    onSuccess: ({ user, password }) => {
+    onSuccess: ({ user }) => {
       localStorage.removeItem(DRAFT_KEY);
-      setDone({ id: user.id, mobile: user.mobile, password });
+      setDone({ id: user.id, role: user.role, name: user.name });
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    onError: (e) => toast.error(e.message),
+    onError: showServerError,
   });
-
-  const fillSample = () => {
-    const g0 = getValues();
-    const samples: [DocKey, string, string][] = [
-      ["aadhaarDocName", "aadhaar-card.svg", "Sample Aadhaar Card"],
-      ["panDocName", "pan-card.svg", "Sample PAN Card"],
-      ["bankDocName", "passbook-first-page.svg", "Sample Bank Passbook"],
-    ];
-    for (const [k, name, title] of samples) if (!g0[k]) attach(k, sampleDoc(title), name);
-    if (!g0.photoName) attach("photoName", svgBlob(samplePhotoSvg()), "passport-photo.svg");
-    if (!g0.signatureName) attach("signatureName", svgBlob(sampleSignatureSvg()), "signature.svg");
-    const rnd = String(Math.floor(10000000 + Math.random() * 89999999));
-    const acc = "1234567890" + rnd.slice(0, 2);
-    const g = getValues();
-    reset({
-      name: "AMIT SINGH", fatherName: "RAJENDRA SINGH", motherName: "MEENA DEVI", dob: "2000-08-15",
-      email: `amit${rnd.slice(0, 4)}@example.com`, mobile: "98" + rnd, gender: "Male", category: "GEN", religion: "Hindu",
-      country: "India", state: "Uttar Pradesh", district: "Meerut", tehsil: "Mawana", postOffice: "Kithore", pincode: "250401",
-      policeStation: "Kithore", address: "House No. 12, Village Kithore, Tehsil Mawana, District Meerut",
-      bankName: "Bank of Baroda", holder: "AMIT SINGH", account: acc, account2: acc, ifsc: "BARB0MAWANA",
-      qualification: "Class 12", aadhaar: "234123412346", aadhaarDocName: g.aadhaarDocName || "aadhaar-card.svg",
-      pan: "ABCDE1234F", panDocName: g.panDocName || "pan-card.svg",
-      bankDocType: "Bank Passbook", bankDocName: g.bankDocName || "passbook-first-page.svg",
-      photo: g.photo || svgDataUrl(samplePhotoSvg()), photoName: g.photoName || "passport-photo.svg",
-      signature: g.signature || svgDataUrl(sampleSignatureSvg()), signatureName: g.signatureName || "signature.svg",
-      declare: false, terms: false,
-    });
-    toast.success("Sample data filled in all steps. Go to Preview to submit.");
-  };
 
   if (done) return <Success {...done} />;
 
@@ -210,9 +279,11 @@ export function RegisterWizard() {
             <p className="text-xs font-semibold uppercase tracking-wider text-saffron-dark">Step {step + 1} of {STEPS.length}</p>
             <h2 className="text-xl font-bold">{STEPS[step].title}</h2>
           </div>
-          <Button type="button" variant="light" size="sm" onClick={fillSample}>
-            <Wand2 /> Fill sample data
-          </Button>
+          {v.role && (
+            <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
+              Registering as {v.role === "deo" ? "Data Entry Operator" : "Verifier"}
+            </span>
+          )}
         </div>
 
         <form
@@ -226,12 +297,37 @@ export function RegisterWizard() {
         >
           <div className="space-y-5 px-5 py-6 sm:px-6">
             {draftLoaded && step === 0 && (
-              <Alert tone="blue" icon={Info}>Your saved draft has been restored. Bank account and Aadhaar numbers, and uploaded documents, are not saved – please enter / upload them again.</Alert>
+              <Alert tone="blue" icon={Info}>Your saved draft has been restored. Bank account and Aadhaar numbers, password and uploaded documents are not saved – please enter / upload them again.</Alert>
             )}
 
             {/* STEP 1 – Personal */}
             {step === 0 && (
               <div className="grid gap-5 sm:grid-cols-2">
+                <fieldset className="sm:col-span-2">
+                  <legend className="mb-2 text-sm font-semibold text-navy">Register as <span className="text-danger">*</span></legend>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {REGISTER_AS.map((r) => {
+                      const Icon = r.value === "deo" ? ClipboardList : UserCheck;
+                      return (
+                        <label
+                          key={r.value}
+                          className={cn(
+                            "flex cursor-pointer items-start gap-3 rounded-xl border-2 bg-white p-4 transition hover:border-primary/60 has-[:checked]:border-primary has-[:checked]:bg-primary-soft/50",
+                            err("role") ? "border-danger" : "border-line",
+                          )}
+                        >
+                          <input type="radio" value={r.value} className="mt-1 size-4 shrink-0 accent-[var(--color-primary)]" {...register("role")} />
+                          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Icon className="size-5" /></span>
+                          <span>
+                            <b className="block text-sm text-navy">{r.label}</b>
+                            <span className="text-xs text-muted">{r.hint}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {err("role") && <p className="mt-1 text-xs text-danger">{err("role")}</p>}
+                </fieldset>
                 <Field className="sm:col-span-2" label="Candidate Full Name" htmlFor="name" required error={err("name")} hint="As written on your Aadhaar card">
                   <Input id="name" className="uppercase" maxLength={60} aria-invalid={!!err("name")} {...register("name")} />
                 </Field>
@@ -304,7 +400,6 @@ export function RegisterWizard() {
             {/* STEP 3 – Bank */}
             {step === 2 && (
               <>
-                <Alert tone="amber" icon={TriangleAlert}>Demo portal: use sample details, not your real bank account.</Alert>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Bank Name" htmlFor="bankName" required error={err("bankName")}>
                     <Input id="bankName" maxLength={60} aria-invalid={!!err("bankName")} {...register("bankName")} />
@@ -340,10 +435,12 @@ export function RegisterWizard() {
                     <FileUpload
                       fileName={v.aadhaarDocName}
                       accept={DOC}
-                      hint="Front and back in one file · PDF, JPG or PNG, max 2 MB"
+                      hint="Front and back in one file · JPG, PNG or PDF (PDF max 2 MB)"
+                      maxMb={10}
+                      maxPdfMb={2}
                       invalid={!!err("aadhaarDocName")}
                       viewUrl={fileUrls.aadhaarDocName}
-                      onFile={(f) => attach("aadhaarDocName", f, f.name)}
+                      onFile={(f) => attach("aadhaarDocName", f)}
                       onClear={() => detach("aadhaarDocName")}
                     />
                   </Field>
@@ -357,10 +454,12 @@ export function RegisterWizard() {
                     <FileUpload
                       fileName={v.panDocName}
                       accept={DOC}
-                      hint="Front side · PDF, JPG or PNG, max 2 MB"
+                      hint="Front side · JPG, PNG or PDF (PDF max 2 MB)"
+                      maxMb={10}
+                      maxPdfMb={2}
                       invalid={!!err("panDocName")}
                       viewUrl={fileUrls.panDocName}
-                      onFile={(f) => attach("panDocName", f, f.name)}
+                      onFile={(f) => attach("panDocName", f)}
                       onClear={() => detach("panDocName")}
                     />
                   </Field>
@@ -374,10 +473,12 @@ export function RegisterWizard() {
                     <FileUpload
                       fileName={v.bankDocName}
                       accept={DOC}
-                      hint={`${v.bankDocType === "Cancelled Cheque" ? "Cancelled cheque with your name printed" : "First page showing name & account number"} · PDF, JPG or PNG, max 2 MB`}
+                      hint={`${v.bankDocType === "Cancelled Cheque" ? "Cancelled cheque with your name printed" : "First page showing name & account number"} · JPG, PNG or PDF (PDF max 2 MB)`}
+                      maxMb={10}
+                      maxPdfMb={2}
                       invalid={!!err("bankDocName")}
                       viewUrl={fileUrls.bankDocName}
-                      onFile={(f) => attach("bankDocName", f, f.name)}
+                      onFile={(f) => attach("bankDocName", f)}
                       onClear={() => detach("bankDocName")}
                     />
                   </Field>
@@ -389,13 +490,11 @@ export function RegisterWizard() {
                       kind="image"
                       fileName={v.photoName}
                       accept={IMG}
-                      hint="Recent colour photo, plain background · JPG or PNG, max 2 MB"
+                      hint="Recent colour photo, plain background · JPG or PNG"
+                      maxMb={10}
                       invalid={!!err("photoName")}
                       viewUrl={fileUrls.photoName}
-                      onFile={async (f) => {
-                        setValue("photo", await toThumbnail(f, 240).catch(() => ""));
-                        attach("photoName", f, f.name);
-                      }}
+                      onFile={(f) => attach("photoName", f)}
                       onClear={() => detach("photoName")}
                     />
                   </Field>
@@ -407,14 +506,11 @@ export function RegisterWizard() {
                       kind="image"
                       fileName={v.signatureName}
                       accept={IMG}
-                      hint="Sign in black/blue ink on white paper · JPG or PNG, max 1 MB"
-                      maxMb={1}
+                      hint="Sign in black/blue ink on white paper · JPG or PNG"
+                      maxMb={10}
                       invalid={!!err("signatureName")}
                       viewUrl={fileUrls.signatureName}
-                      onFile={async (f) => {
-                        setValue("signature", await toThumbnail(f, 360).catch(() => ""));
-                        attach("signatureName", f, f.name);
-                      }}
+                      onFile={(f) => attach("signatureName", f)}
                       onClear={() => detach("signatureName")}
                     />
                   </Field>
@@ -439,6 +535,7 @@ export function RegisterWizard() {
                     </figure>
                   </div>
                   <ReviewBlock className="flex-1 border-0" title="Personal Details" onEdit={() => goTo(0)} rows={[
+                    ["Registering as", v.role === "verifier" ? "Verifier (VR)" : "Data Entry Operator (DEO)"],
                     ["Candidate Full Name", v.name.toUpperCase()], ["Father's Name", v.fatherName.toUpperCase()], ["Mother's Name", v.motherName.toUpperCase()],
                     ["Date of Birth", fmtDate(v.dob)], ["Email ID", v.email], ["Mobile Number", v.mobile],
                     ["Gender", v.gender], ["Category", v.category], ["Religion", v.religion],
@@ -465,6 +562,18 @@ export function RegisterWizard() {
                     { label: "Signature", name: v.signatureName, url: fileUrls.signatureName, required: true, image: true },
                   ]}
                 />
+                <div className="space-y-4 rounded-xl border border-line p-4">
+                  <h3 className="flex items-center gap-2 font-semibold"><KeyRound className="size-4 text-primary" /> Create Password</h3>
+                  <p className="-mt-2 text-xs text-muted">You will log in with your Registration ID, mobile number or email ID and this password.</p>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Password" htmlFor="password" required error={err("password")} hint={PASSWORD_HINT}>
+                      <Input id="password" type="password" autoComplete="new-password" maxLength={72} aria-invalid={!!err("password")} {...register("password")} />
+                    </Field>
+                    <Field label="Confirm Password" htmlFor="password2" required error={err("password2")}>
+                      <Input id="password2" type="password" autoComplete="new-password" maxLength={72} aria-invalid={!!err("password2")} {...register("password2")} />
+                    </Field>
+                  </div>
+                </div>
                 <div className="space-y-3 rounded-xl border border-line bg-primary-soft/50 p-4">
                   <h3 className="font-semibold">Declaration</h3>
                   <Tick label="I hereby declare that the information provided above is true and correct to the best of my knowledge. I understand that any false statement will lead to immediate disqualification." error={err("declare")} {...register("declare")} />
@@ -478,7 +587,7 @@ export function RegisterWizard() {
             <Button type="button" variant="light" onClick={() => goTo(step - 1)} disabled={step === 0}>
               <ArrowLeft /> Back
             </Button>
-            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex"><ShieldCheck className="size-3.5" /> Progress is saved on this device (except account &amp; Aadhaar numbers).</span>
+            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex"><ShieldCheck className="size-3.5" /> Progress is saved on this device (except account &amp; Aadhaar numbers and password).</span>
             {step < last ? (
               <Button type="submit">Next <ArrowRight /></Button>
             ) : (
@@ -501,18 +610,6 @@ export function RegisterWizard() {
 function digitsOnly(e: React.ChangeEvent<HTMLInputElement>) {
   e.target.value = e.target.value.replace(/\D/g, "");
 }
-
-const samplePhotoSvg = () =>
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150'><rect width='120' height='150' fill='#e9effb'/><circle cx='60' cy='58' r='26' fill='#1c3f94'/><rect x='22' y='94' width='76' height='60' rx='30' fill='#1c3f94'/></svg>`;
-const sampleSignatureSvg = () =>
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80'><rect width='240' height='80' fill='#fff'/><path d='M14 56c18-30 30-38 36-26s-10 30 4 22 22-40 30-30-6 28 8 24 18-26 28-20 2 20 14 18 20-14 30-12 20 8 60-6' fill='none' stroke='#1a2b6b' stroke-width='3' stroke-linecap='round'/></svg>`;
-const svgDataUrl = (svg: string) => "data:image/svg+xml;base64," + btoa(svg);
-const svgBlob = (svg: string) => new Blob([svg], { type: "image/svg+xml" });
-/** Placeholder "document" used by Fill sample data, so View works in the demo. */
-const sampleDoc = (title: string) =>
-  svgBlob(
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 260'><rect width='420' height='260' rx='16' fill='#f5f7fa' stroke='#1c3f94' stroke-width='3'/><rect width='420' height='54' rx='16' fill='#1c3f94'/><text x='24' y='36' font-family='Arial' font-size='20' fill='#fff' font-weight='bold'>${title}</text><text x='24' y='120' font-family='Arial' font-size='16' fill='#5d6b7a'>Demo placeholder – upload the real document</text><text x='24' y='150' font-family='Arial' font-size='16' fill='#5d6b7a'>when registering.</text></svg>`,
-  );
 
 function Section({ title, optional, children }: { title: string; optional?: boolean; children: React.ReactNode }) {
   return (
@@ -659,33 +756,36 @@ function ReviewBlock({ title, rows, onEdit, className }: { title: string; rows: 
   );
 }
 
-function Success({ id, mobile, password }: { id: string; mobile: string; password: string }) {
+function Success({ id, role, name }: { id: string; role: "deo" | "verifier"; name: string }) {
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`NASOI Registration ID: ${id}\nMobile: ${mobile}\nPassword: ${password}`);
-      toast.success("Login details copied.");
+      await navigator.clipboard.writeText(id);
+      toast.success("Registration ID copied.");
     } catch {
-      toast.error("Copy not available – please note the details.");
+      toast.error("Copy not available – please note the ID.");
     }
   };
+  const roleLabel = role === "verifier" ? "Verifier (VR)" : "Data Entry Operator (DEO)";
   return (
     <Card className="mx-auto max-w-lg p-6 text-center sm:p-8">
       <span className="mx-auto grid size-16 place-items-center rounded-full bg-success-soft text-success">
         <CircleCheck className="size-9" />
       </span>
       <h2 className="mt-4 text-2xl font-bold">Registration successful</h2>
-      <p className="mt-1 text-sm text-muted">Your Data Entry Operator account has been created. Please note your login details.</p>
+      <p className="mt-1 text-sm text-muted">Your {roleLabel} account has been created.</p>
       <div className="mt-5 space-y-2 rounded-xl border border-success/30 bg-success-soft/60 p-4 text-left">
-        {[["Employee / Registration ID", id], ["Mobile No.", mobile], ["Password", password]].map(([k, val]) => (
+        {[["Registration ID", id], ["Name", name], ["Registered as", roleLabel]].map(([k, val]) => (
           <div key={k} className="flex items-center justify-between gap-4 text-sm">
             <span className="text-muted">{k}</span>
-            <b className="font-mono text-base text-navy">{val}</b>
+            <b className={cn("text-navy", k === "Registration ID" && "font-mono text-lg")}>{val}</b>
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs text-muted">Log in with the Registration ID, mobile number or email ID. The Super Admin will assign your work area shortly.</p>
+      <p className="mt-3 text-xs text-muted">
+        Please note your Registration ID. Log in with the Registration ID, mobile number or email ID and the password you created.
+      </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Button variant="light" onClick={copy}><Copy /> Copy details</Button>
+        <Button variant="light" onClick={copy}><Copy /> Copy ID</Button>
         <Button asChild><Link href={`/login?id=${encodeURIComponent(id)}`}><LogIn /> Go to Login</Link></Button>
       </div>
     </Card>
