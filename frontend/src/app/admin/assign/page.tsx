@@ -98,8 +98,8 @@ function AssignInner() {
           if (err.code === "PIN_BUSY") return setError("pincode", { message: err.message }, { shouldFocus: true });
           if (err.code === "DEO_BUSY" || err.code === "DEO_BLOCKED" || err.code === "DEO_NOT_FOUND")
             return setError("deoId", { message: err.message }, { shouldFocus: true });
-          if (err.fields) {
-            for (const [k, msg] of Object.entries(err.fields)) setError(k as keyof FormIn, { message: String(msg) });
+          if (err.fields?.length) {
+            err.fields.forEach((f, i) => setError(f.path as keyof FormIn, { message: f.message }, { shouldFocus: i === 0 }));
             return;
           }
           toast.error(err.message);
