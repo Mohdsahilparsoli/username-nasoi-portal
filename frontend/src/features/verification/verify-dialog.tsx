@@ -9,7 +9,7 @@ import { Field, Select, Textarea } from "@/components/ui/form-controls";
 import { Alert, DetailGrid, Skeleton } from "@/components/ui/misc";
 import { SchoolEntryDetail } from "@/features/school-entries/school-form";
 import { AuthError } from "@/lib/api/auth";
-import { fmtDateTime, money } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/utils";
 import { useDecide, useVerifierEntry } from "./hooks";
 
 export const SCHOOL_REJECT_REASONS = [
@@ -24,7 +24,7 @@ export const SCHOOL_REJECT_REASONS = [
 ];
 
 /** Opens an entry; when it is pending (and assigned to me) it can be approved or rejected. */
-export function VerifyDialog({ id, startReject, rate, onClose }: { id: string | null; startReject?: boolean; rate?: number; onClose: () => void }) {
+export function VerifyDialog({ id, startReject, onClose }: { id: string | null; startReject?: boolean; onClose: () => void }) {
   const q = useVerifierEntry(id);
   const decide = useDecide();
   const [rejecting, setRejecting] = useState(false);
@@ -50,9 +50,7 @@ export function VerifyDialog({ id, startReject, rate, onClose }: { id: string | 
     }
     try {
       await decide.mutateAsync({ id: id!, decision, reason: decision === "rejected" ? reason.trim() : undefined });
-      toast.success(decision === "approved" ? `${id} approved.` : `${id} rejected – the operator has been notified.`, {
-        description: rate ? `+${money(rate)} added to your income.` : undefined,
-      });
+      toast.success(decision === "approved" ? `${id} approved.` : `${id} rejected – the operator has been notified.`);
       onClose();
     } catch (err) {
       if (err instanceof AuthError && err.fields?.length) setError(err.fields[0].message);

@@ -23,7 +23,7 @@ export default function VerifierDashboard() {
     <>
       <PageHeader
         title={`Welcome, ${me.name}`}
-        description={s.data ? `You earn ${money(s.data.rate)} for every entry you verify (approve or reject).` : "Your verification work at a glance."}
+        description="Your verification work at a glance."
         action={<Button asChild><Link href="/verifier/verify"><ShieldCheck /> Verify Data</Link></Button>}
       />
       {s.isError && <Alert tone="red" icon={TriangleAlert} className="mb-5">Could not load your numbers. Please refresh the page.</Alert>}
@@ -67,7 +67,7 @@ export default function VerifierDashboard() {
           </div>
         )}
       </Card>
-      <VerifyDialog id={open} rate={s.data?.rate} onClose={() => setOpen(null)} />
+      <VerifyDialog id={open} onClose={() => setOpen(null)} />
     </>
   );
 }

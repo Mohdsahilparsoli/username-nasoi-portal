@@ -13,7 +13,8 @@ export interface WorkAssignment {
   deo?: { id: string; name: string; mobile: string | null };
   taskType: string;
   target: number;
-  ratePerEntry: number;
+  /** Only sent to the Super Admin – DEOs never see the per-entry rate. */
+  ratePerEntry?: number;
   area: { state: string; district: string; block: string; village: string; pincode: string };
   deadline: string;
   instructions: string | null;
@@ -168,7 +169,6 @@ export interface SchoolEntry {
   deoId: string;
   area: { state: string; district: string; pincode: string };
   school: SchoolData;
-  ratePerEntry: number;
   status: EntryStatus;
   rejectReason: string | null;
   verifiedAt: string | null;
@@ -188,8 +188,6 @@ export interface Totals {
   approved: number;
   rejected: number;
   earnings: number;
-  pendingValue: number;
-  rejectedValue: number;
 }
 
 export interface MySummary {

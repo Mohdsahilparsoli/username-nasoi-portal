@@ -11,7 +11,7 @@ import { Alert, PageHeader, Progress, Skeleton } from "@/components/ui/misc";
 import { AreaStrip, EMPTY_SCHOOL, SchoolFields, schoolSchema, showServerError, toInput, type SchoolForm } from "@/features/school-entries/school-form";
 import { useCreateEntry, useMyWork } from "@/features/work/hooks";
 import type { z } from "zod";
-import { fmtDate, money } from "@/lib/utils";
+import { fmtDate } from "@/lib/utils";
 
 export default function NewEntryPage() {
   const work = useMyWork();
@@ -51,7 +51,7 @@ export default function NewEntryPage() {
         <Card>
           <CardHeader
             title={`${a.id} · ${a.taskType}`}
-            action={<span className="text-sm text-muted">Rate <b className="text-navy">{money(a.ratePerEntry)}</b> per approved entry</span>}
+            action={<span className="text-sm text-muted">Target <b className="text-navy">{a.target}</b> entries</span>}
           />
           <div className="space-y-3 border-b border-line p-5">
             <AreaStrip area={a.area} />

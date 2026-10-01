@@ -35,3 +35,12 @@ export function useSaveSettings() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: api.saveSettings, onSuccess: (s) => qc.setQueryData(["app-settings"], s) });
 }
+
+/* ---------- Admin: all entries + export ---------- */
+export function useAdminEntries(f: api.EntryFilter) {
+  return useQuery({ queryKey: ["admin-entries", f], queryFn: () => api.adminEntries(f), placeholderData: (prev) => prev });
+}
+
+export function useExportOptions() {
+  return useQuery({ queryKey: ["admin-entries", "export-options"], queryFn: api.exportOptions });
+}

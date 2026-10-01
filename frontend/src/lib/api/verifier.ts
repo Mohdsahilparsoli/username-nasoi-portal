@@ -1,5 +1,5 @@
 /** Real API for the Verifier panel and the admin settings. */
-import { authRequest } from "./auth";
+import { authRaw, authRequest } from "./auth";
 import type { SchoolEntry } from "./work";
 
 export interface VerifierSummary {
@@ -9,8 +9,6 @@ export interface VerifierSummary {
   rejected: number;
   income: number;
   verifiedToday: number;
-  /** ₹ per verified (approved or rejected) entry right now. */
-  rate: number;
   monthly: { month: string; approved: number; rejected: number; income: number }[];
 }
 
@@ -26,7 +24,6 @@ export interface HistoryRow {
   id: string;
   decision: "approved" | "rejected";
   reason: string | null;
-  rate: number;
   createdAt: string;
   entry: { id: string; udiseCode: string; schoolName: string; pincode: string; currentStatus: string };
   deo: { id: string; name: string };
@@ -50,7 +47,7 @@ export const verifierEntry = (id: string) =>
   authRequest<{ entry: VerifierEntry }>("verifier", `/verifier/entries/${encodeURIComponent(id)}`).then((r) => r.entry);
 
 export const decide = (id: string, decision: "approved" | "rejected", reason?: string) =>
-  authRequest<{ entry: SchoolEntry; rate: number }>("verifier", `/verifier/entries/${encodeURIComponent(id)}/decision`, json("POST", { decision, reason }));
+  authRequest<{ entry: SchoolEntry }>("verifier", `/verifier/entries/${encodeURIComponent(id)}/decision`, json("POST", { decision, reason }));
 
 export const verifierHistory = (decision?: "approved" | "rejected") =>
   authRequest<{ history: HistoryRow[] }>("verifier", `/verifier/history${decision ? `?decision=${decision}` : ""}`).then((r) => r.history);
@@ -59,3 +56,56 @@ export const getSettings = () => authRequest<{ settings: AppSettings }>("admin",
 
 export const saveSettings = (v: AppSettings) =>
   authRequest<{ settings: AppSettings }>("admin", "/admin/settings", json("PATCH", v)).then((r) => r.settings);
+
+/* ---------- Admin: all entries + export ---------- */
+export type EntryFilter = Partial<Record<"status" | "pincode" | "deoId" | "verifierId" | "assignmentId" | "taskType" | "state" | "district" | "from" | "to" | "q", string>>;
+
+export interface AdminEntry {
+  id: string;
+  assignmentId: string;
+  taskType: string;
+  area: { state: string; district: string; pincode: string };
+  udiseCode: string;
+  schoolName: string;
+  lgdVillage: string;
+  status: "pending" | "approved" | "rejected";
+  rejectReason: string | null;
+  deo: { id: string; name: string };
+  verifier: { id: string; name: string } | null;
+  ratePerEntry: number;
+  submittedAt: string;
+  verifiedAt: string | null;
+}
+
+export interface ExportOptions {
+  totalApproved: number;
+  pincodes: { value: string; count: number }[];
+  deos: { value: string; label: string; count: number }[];
+  verifiers: { value: string; label: string; count: number }[];
+  assignments: { value: string; count: number }[];
+  districts: { state: string; district: string; count: number }[];
+  services: { value: string; count: number }[];
+}
+
+const query = (f: EntryFilter) => {
+  const s = new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
+  return s ? `?${s}` : "";
+};
+
+export const adminEntries = (f: EntryFilter) =>
+  authRequest<{ total: number; counts: Record<"all" | "pending" | "approved" | "rejected", number>; entries: AdminEntry[] }>("admin", `/admin/entries${query(f)}`);
+
+export const exportOptions = () => authRequest<ExportOptions>("admin", "/admin/entries/export-options");
+
+/** Downloads approved entries (Excel or CSV) with the given filters; no filters = everything. */
+export async function downloadExport(format: "xlsx" | "csv", f: EntryFilter) {
+  const res = await authRaw("admin", `/admin/entries/export${query({ ...f, format } as EntryFilter)}`);
+  const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? `nasoi-approved-entries.${format}`;
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  return name;
+}

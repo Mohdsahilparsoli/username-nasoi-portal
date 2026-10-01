@@ -9,7 +9,7 @@ import { Alert, Badge, DetailGrid, StatusBadge } from "@/components/ui/misc";
 import { AuthError } from "@/lib/api/auth";
 import type { SchoolEntry, SchoolInput } from "@/lib/api/work";
 import { RURAL_URBAN, SCHOOL_CATEGORIES, SCHOOL_MANAGEMENTS, SCHOOL_TYPES } from "@/lib/school-options";
-import { fmtDateTime, money } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/utils";
 
 const thisYear = () => Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date()));
 const text = (label: string, min = 2, max = 80) =>
@@ -161,7 +161,6 @@ export function SchoolEntryDetail({ entry }: { entry: SchoolEntry }) {
           ["Entry ID", entry.id],
           ["Status", <span key="s" className="flex gap-1.5"><StatusBadge status={entry.status} />{entry.resubmitCount > 0 && <Badge tone="blue">Resubmitted</Badge>}</span>],
           ["Assignment", entry.assignmentId],
-          ["DEO rate", `${money(entry.ratePerEntry)} per approved entry`],
           ["Submitted on", fmtDateTime(entry.submittedAt)],
           ["Verified on", fmtDateTime(entry.verifiedAt)],
         ]}

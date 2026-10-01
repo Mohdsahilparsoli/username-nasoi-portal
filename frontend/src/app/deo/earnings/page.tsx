@@ -26,7 +26,7 @@ export default function EarningsPage() {
 
   return (
     <>
-      <PageHeader title="Earnings & Monthly History" description="You are paid for approved entries only, at the rate of the work they belong to." />
+      <PageHeader title="Earnings & Monthly History" description="You are paid for approved entries only." />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-gradient-to-br from-navy to-primary p-6 text-white">
         <div>
@@ -43,8 +43,8 @@ export default function EarningsPage() {
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="This month" value={money(thisMonth?.earnings)} icon={Calendar} tone="green" />
-        <StatCard label="Pending (if approved)" value={money(s.pendingValue)} icon={Clock} tone="amber" href="/deo/entries?status=pending" />
-        <StatCard label="Lost to rejection" value={money(s.rejectedValue)} icon={CircleX} tone="red" href="/deo/entries?status=rejected" />
+        <StatCard label="Pending verification" value={s.pending} icon={Clock} tone="amber" href="/deo/entries?status=pending" />
+        <StatCard label="Rejected entries" value={s.rejected} icon={CircleX} tone="red" href="/deo/entries?status=rejected" />
         <StatCard label="Approval rate" value={decided ? `${Math.round((s.approved / decided) * 100)}%` : "—"} icon={TrendingUp} tone="blue" />
       </div>
 

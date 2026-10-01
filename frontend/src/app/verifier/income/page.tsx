@@ -21,7 +21,7 @@ export default function VerifierIncomePage() {
 
   return (
     <>
-      <PageHeader title="Income & Monthly History" description={`You earn ${money(d.rate)} for every entry you verify – approved or rejected.`} />
+      <PageHeader title="Income & Monthly History" description="Your income from verified entries." />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-gradient-to-br from-navy to-primary p-6 text-white">
         <div>
           <p className="text-sm text-slate-300">Total income</p>
@@ -38,7 +38,7 @@ export default function VerifierIncomePage() {
         <StatCard label="This month" value={money(month?.income)} icon={Calendar} tone="green" />
         <StatCard label="Verified today" value={d.verifiedToday} icon={ClipboardCheck} tone="blue" />
         <StatCard label="Approved" value={d.approved} icon={CircleCheck} tone="green" href="/verifier/approved" />
-        <StatCard label="Current rate" value={`${money(d.rate)} / entry`} icon={Wallet} tone="saffron" />
+        <StatCard label="Rejected" value={d.rejected} icon={Wallet} tone="red" href="/verifier/rejected" />
       </div>
       <Card>
         <CardHeader title="Monthly history" />

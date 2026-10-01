@@ -1,13 +1,13 @@
 "use client";
 
-import { Calendar, CircleCheck, FileText, Hash, MapPin, Target, TriangleAlert, Wallet } from "lucide-react";
+import { Calendar, CircleCheck, FileText, Hash, MapPin, Target, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, EmptyState, PageHeader, Progress, Skeleton } from "@/components/ui/misc";
 import { useMarkWorkSeen, useMyWork } from "@/features/work/hooks";
 import { WorkStatusBadge, areaText } from "@/features/work/ui";
-import { fmtDate, money } from "@/lib/utils";
+import { fmtDate } from "@/lib/utils";
 
 export default function WorkStatusPage() {
   const work = useMyWork();
@@ -45,7 +45,6 @@ export default function WorkStatusPage() {
             <Item icon={Hash} label="PIN code" value={<b className="text-base">{current.area.pincode}</b>} />
             <Item icon={MapPin} label="Area" value={areaText(current.area)} />
             <Item icon={Target} label="Target" value={`${current.target} entries`} />
-            <Item icon={Wallet} label="Rate" value={`${money(current.ratePerEntry)} per approved entry`} />
             <Item icon={Calendar} label="Deadline" value={fmtDate(current.deadline)} />
           </dl>
           <div className="mx-5 mb-5 max-w-lg">
@@ -83,7 +82,7 @@ export default function WorkStatusPage() {
                   <b className="text-sm text-navy">{a.id} · {a.taskType}</b>
                   <p className="text-xs text-muted">{areaText(a.area)}</p>
                   <p className="text-xs text-muted">
-                    {a.progress?.submitted ?? 0} of {a.target} entries · {a.progress?.approved ?? 0} approved · {money(a.ratePerEntry)}/entry · {a.status === "completed" ? "completed" : "cancelled"} on {fmtDate(a.completedAt ?? a.cancelledAt)}
+                    {a.progress?.submitted ?? 0} of {a.target} entries · {a.progress?.approved ?? 0} approved · {a.status === "completed" ? "completed" : "cancelled"} on {fmtDate(a.completedAt ?? a.cancelledAt)}
                   </p>
                 </div>
                 <WorkStatusBadge a={a} />

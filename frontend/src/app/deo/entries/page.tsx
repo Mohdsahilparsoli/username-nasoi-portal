@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/form-controls";
 import { Alert, PageHeader, StatusBadge } from "@/components/ui/misc";
 import { useMyEntries, useMyWork } from "@/features/work/hooks";
 import type { EntryStatus, SchoolEntry } from "@/lib/api/work";
-import { fmtDateTime, money } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/utils";
 
 type Filter = "all" | EntryStatus;
 
@@ -65,12 +65,6 @@ function EntriesInner() {
       { accessorKey: "assignmentId", header: "Work", cell: ({ getValue }) => <span className="whitespace-nowrap text-xs">{String(getValue())}</span> },
       { accessorKey: "submittedAt", header: "Submitted", cell: ({ getValue }) => <span className="whitespace-nowrap text-xs">{fmtDateTime(String(getValue()))}</span> },
       { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
-      {
-        id: "amount",
-        header: "Amount",
-        accessorFn: (e) => (e.status === "approved" ? e.ratePerEntry : 0),
-        cell: ({ row: { original: e } }) => (e.status === "approved" ? money(e.ratePerEntry) : <span className="text-muted">—</span>),
-      },
       {
         id: "actions",
         header: "",

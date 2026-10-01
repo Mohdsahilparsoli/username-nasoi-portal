@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Alert, PageHeader, StatusBadge } from "@/components/ui/misc";
 import type { HistoryRow } from "@/lib/api/verifier";
-import { fmtDateTime, money } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/utils";
 import { useVerifierHistory } from "./hooks";
 import { VerifyDialog } from "./verify-dialog";
 
@@ -32,7 +32,6 @@ export function VerifierHistory({ decision }: { decision: "approved" | "rejected
         : []),
       { accessorKey: "createdAt", header: decision === "approved" ? "Approved on" : "Rejected on", cell: ({ getValue }) => <span className="whitespace-nowrap text-xs">{fmtDateTime(String(getValue()))}</span> },
       { id: "now", header: "Now", accessorFn: (r) => r.entry.currentStatus, cell: ({ row: { original: r } }) => <StatusBadge status={r.entry.currentStatus as "pending" | "approved" | "rejected"} /> },
-      { accessorKey: "rate", header: "Income", cell: ({ getValue }) => money(Number(getValue())) },
       { id: "view", header: "", enableSorting: false, cell: ({ row }) => <Button variant="light" size="sm" onClick={() => setOpen(row.original.entry.id)}><Eye /> View</Button> },
     ],
     [decision],

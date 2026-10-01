@@ -108,7 +108,7 @@ function VerifyInner() {
           emptyText={view === "pending" ? "Nothing pending. All entries assigned to you are verified." : "No entries assigned to you yet."}
         />
       </Card>
-      <VerifyDialog id={open?.id ?? null} startReject={open?.reject} rate={s?.rate} onClose={() => setOpen(null)} />
+      <VerifyDialog id={open?.id ?? null} startReject={open?.reject} onClose={() => setOpen(null)} />
     </>
   );
 }
