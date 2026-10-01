@@ -33,7 +33,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/deo", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { href: "/deo/profile", label: "Profile & Bank", icon: User },
     { href: "/deo/work", label: "Work Status", icon: MapPin, badge: "newAssignments" },
-    { href: "/deo/entries", label: "My Entries", icon: ClipboardList, exact: true },
+    { href: "/deo/entries", label: "My Entries", icon: ClipboardList },
     { href: "/deo/entries/new", label: "New Add Entry", icon: CirclePlus },
     { href: "/deo/earnings", label: "Earnings & History", icon: Wallet },
   ],
@@ -159,7 +159,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
       >
         <nav className="space-y-1">
           {NAV[role].map((item) => (
-            <SideLink key={item.href} item={item} active={item.exact ? path === item.href : path.startsWith(item.href)} role={role} userId={session.id} />
+            <SideLink key={item.href} item={item} active={isActive(item, path, NAV[role])} role={role} userId={session.id} />
           ))}
           <p className="px-3.5 pb-1.5 pt-5 text-[11px] uppercase tracking-widest text-slate-400">Account</p>
           {role === "deo" && (
@@ -176,6 +176,17 @@ export function DashboardShell({ role, children }: { role: Role; children: React
       <main className="min-h-screen px-4 pb-10 pt-[88px] lg:ml-64 lg:px-7">{children}</main>
     </MeContext.Provider>
   );
+}
+
+/**
+ * An item is active on its own path or a sub-path ("/admin/assign" must not light up on
+ * "/admin/assignments"). When two items match (e.g. "/deo/entries" and "/deo/entries/new"),
+ * only the longest one is active.
+ */
+function isActive(item: NavItem, path: string, items: NavItem[]) {
+  const match = (i: NavItem) => path === i.href || (!i.exact && path.startsWith(i.href + "/"));
+  if (!match(item)) return false;
+  return !items.some((o) => o !== item && o.href.length > item.href.length && match(o));
 }
 
 function SideLink({ item, active, role, userId }: { item: NavItem; active: boolean; role: Role; userId: string }) {

@@ -1,78 +1,87 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Send, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Save, Send, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { useMe } from "@/components/layout/dashboard-shell";
+import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Alert, PageHeader, Skeleton } from "@/components/ui/misc";
-import { useAssignments } from "@/features/assignments/hooks";
-import { EntryDetail, EntryFields } from "@/features/entries/components";
-import { useEntries, useResubmitEntry } from "@/features/entries/hooks";
-import { entrySchema, type EntryForm } from "@/lib/validation";
-import type { Entry } from "@/types";
+import { Alert, PageHeader, Skeleton, StatusBadge } from "@/components/ui/misc";
+import {
+  AreaStrip, SchoolEntryDetail, SchoolFields, fromEntry, schoolSchema, showServerError, toInput, type SchoolForm,
+} from "@/features/school-entries/school-form";
+import { useMyEntry, useMyWork, useUpdateEntry } from "@/features/work/hooks";
+import type { SchoolEntry } from "@/lib/api/work";
 
 export default function EntryDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const me = useMe();
-  const entries = useEntries(me.id);
-  const asg = useAssignments(me.id);
-  const entry = entries.data?.find((e) => e.id === id);
+  const entry = useMyEntry(id);
+  const work = useMyWork();
 
-  if (entries.isLoading) return <Skeleton className="h-96" />;
-  if (!entry) {
+  if (entry.isLoading || work.isLoading) return <Skeleton className="h-96" />;
+  const e = entry.data;
+  if (!e) {
     return (
       <Alert tone="red" icon={TriangleAlert}>
-        Entry not found. <Link href="/deo/entries">Back to My Entries</Link>
+        {entry.error instanceof Error ? entry.error.message : "Entry not found."} <Link href="/deo/entries">Back to My Entries</Link>
       </Alert>
     );
   }
+  // Pending / rejected entries of the current (active) work can be corrected.
+  const editable = e.status !== "approved" && e.assignmentId === work.data?.current?.id;
 
   return (
     <>
       <PageHeader
-        title={entry.status === "rejected" ? `Correct & resubmit ${entry.id}` : `Entry ${entry.id}`}
+        title={e.status === "rejected" && editable ? `Fix & resubmit ${e.id}` : `Entry ${e.id}`}
+        description={e.school.schoolName}
         action={<Button asChild variant="light"><Link href="/deo/entries"><ArrowLeft /> Back to entries</Link></Button>}
       />
-      {entry.status === "rejected" ? (
-        <ResubmitForm entry={entry} deoId={me.id} />
+      {editable ? (
+        <EditForm entry={e} />
       ) : (
-        <Card><CardBody><EntryDetail entry={entry} assignment={asg.data?.find((a) => a.id === entry.assignmentId)} /></CardBody></Card>
+        <Card><CardBody><SchoolEntryDetail entry={e} /></CardBody></Card>
       )}
     </>
   );
 }
 
-function ResubmitForm({ entry, deoId }: { entry: Entry; deoId: string }) {
+function EditForm({ entry }: { entry: SchoolEntry }) {
   const router = useRouter();
-  const resubmit = useResubmitEntry(deoId);
-  const form = useForm<EntryForm>({ resolver: zodResolver(entrySchema), defaultValues: { ...entry.data, mobile: entry.data.mobile ?? "" } });
+  const update = useUpdateEntry();
+  const form = useForm<SchoolForm, unknown, z.output<typeof schoolSchema>>({ resolver: zodResolver(schoolSchema), defaultValues: fromEntry(entry) });
+  const rejected = entry.status === "rejected";
 
-  const onSubmit = form.handleSubmit((data) =>
-    resubmit.mutate(
-      { id: entry.id, data },
-      {
-        onSuccess: () => {
-          toast.success(`Entry ${entry.id} resubmitted for verification.`);
-          router.push("/deo/entries?status=pending");
-        },
-        onError: (e) => toast.error(e.message),
-      },
-    ),
-  );
+  // mutateAsync: the result is handled even if the refreshed entry re-renders this form.
+  const onSubmit = form.handleSubmit(async (v) => {
+    try {
+      const e = await update.mutateAsync({ id: entry.id, data: toInput(v) });
+      toast.success(rejected ? `${e.id} resubmitted for verification.` : `${e.id} updated.`);
+      router.push(rejected ? "/deo/entries?status=pending" : "/deo/entries");
+    } catch (err) {
+      showServerError(err, form.setError);
+    }
+  });
 
   return (
     <Card>
-      <CardHeader title="Record details" />
+      <CardHeader title={`${entry.assignmentId}`} action={<StatusBadge status={entry.status} />} />
       <form onSubmit={onSubmit} noValidate className="space-y-5 p-5">
-        <Alert tone="red" icon={TriangleAlert}><b>Rejection reason:</b> {entry.reason}</Alert>
-        <EntryFields register={form.register} errors={form.formState.errors} />
-        <div className="flex gap-2">
-          <Button type="submit" disabled={resubmit.isPending}><Send /> {resubmit.isPending ? "Submitting…" : "Resubmit for verification"}</Button>
+        {rejected ? (
+          <Alert tone="red" icon={TriangleAlert}><b>Rejection reason:</b> {entry.rejectReason || "—"}. Correct the details and resubmit.</Alert>
+        ) : (
+          <Alert tone="blue">This entry is waiting for verification. You can still correct it.</Alert>
+        )}
+        <AreaStrip area={entry.area} />
+        <h3 className="text-base font-bold text-navy">1 – School</h3>
+        <SchoolFields register={form.register} errors={form.formState.errors} />
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={update.isPending}>
+            {rejected ? <Send /> : <Save />} {update.isPending ? "Saving…" : rejected ? "Resubmit for verification" : "Save changes"}
+          </Button>
           <Button asChild variant="light"><Link href="/deo/entries">Cancel</Link></Button>
         </div>
       </form>

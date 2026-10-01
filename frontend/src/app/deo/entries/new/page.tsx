@@ -1,110 +1,86 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Send, TriangleAlert, Wand2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { CircleCheck, ListChecks, MapPin, Send, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { useMe } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Field, Select } from "@/components/ui/form-controls";
-import { Alert, PageHeader, Skeleton } from "@/components/ui/misc";
-import { useAssignments } from "@/features/assignments/hooks";
-import { EntryFields } from "@/features/entries/components";
-import { useCreateEntry } from "@/features/entries/hooks";
-import { money } from "@/lib/utils";
-import { entrySchema, type EntryForm } from "@/lib/validation";
+import { Alert, PageHeader, Progress, Skeleton } from "@/components/ui/misc";
+import { AreaStrip, EMPTY_SCHOOL, SchoolFields, schoolSchema, showServerError, toInput, type SchoolForm } from "@/features/school-entries/school-form";
+import { useCreateEntry, useMyWork } from "@/features/work/hooks";
+import type { z } from "zod";
+import { fmtDate, money } from "@/lib/utils";
 
-const EMPTY: EntryForm = {
-  studentName: "", fatherName: "", gender: "", dob: "", className: "", rollNo: "", school: "", board: "",
-  percentage: "", village: "", pincode: "", mobile: "",
-};
+export default function NewEntryPage() {
+  const work = useMyWork();
+  const create = useCreateEntry();
+  const form = useForm<SchoolForm, unknown, z.output<typeof schoolSchema>>({ resolver: zodResolver(schoolSchema), defaultValues: EMPTY_SCHOOL });
+  const a = work.data?.current;
+  const done = a?.progress?.submitted ?? 0;
+  const full = !!a && done >= a.target;
 
-function NewEntryInner() {
-  const me = useMe();
-  const router = useRouter();
-  const params = useSearchParams();
-  const asg = useAssignments(me.id);
-  const active = useMemo(() => (asg.data ?? []).filter((a) => a.status === "active"), [asg.data]);
-  const [asgId, setAsgId] = useState(params.get("asg") ?? "");
-  const create = useCreateEntry(me.id);
-  const form = useForm<EntryForm>({ resolver: zodResolver(entrySchema), defaultValues: EMPTY });
-
-  const selected = active.find((a) => a.id === asgId) ?? active[0];
-
-  // Pre-fill the village from the selected assignment.
-  useEffect(() => {
-    if (selected && !form.getValues("village")) form.setValue("village", selected.area.village);
-  }, [selected, form]);
-
-  const onSubmit = form.handleSubmit((data) => {
-    if (!selected) return;
-    create.mutate(
-      { assignmentId: selected.id, data },
-      {
-        onSuccess: (e) => {
-          toast.success(`Entry ${e.id} submitted. Status: Pending verification.`, {
-            action: { label: "View entries", onClick: () => router.push("/deo/entries?status=pending") },
-          });
-          form.reset({ ...EMPTY, village: selected.area.village });
-        },
-        onError: (err) => {
-          if (err.message.includes("roll number")) form.setError("rollNo", { message: err.message });
-          toast.error(err.message);
-        },
+  const onSubmit = form.handleSubmit((v) =>
+    create.mutate(toInput(v), {
+      onSuccess: (e) => {
+        toast.success(`Entry ${e.id} submitted – pending verification.`, { description: e.school.schoolName });
+        form.reset(EMPTY_SCHOOL);
+        document.getElementById("udiseCode")?.focus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
       },
-    );
-  });
+      onError: (err) => showServerError(err, form.setError),
+    }),
+  );
 
-  const fillSample = () => {
-    const names = ["Ravi Tomar", "Sakshi Rana", "Mohit Pal", "Anjali Malik", "Kunal Bansal", "Shivani Goyal"];
-    const i = Math.floor(Math.random() * names.length);
-    form.reset({
-      studentName: names[i], fatherName: `Mr. ${names[(i + 2) % names.length].split(" ")[1]}`,
-      gender: i % 2 ? "Female" : "Male", dob: `2008-0${1 + i}-1${i}`, className: i % 2 ? "12th" : "10th",
-      rollNo: String(250000 + Math.floor(Math.random() * 90000)), school: "Govt. Inter College Sardhana", board: "UP Board",
-      percentage: (55 + Math.random() * 40).toFixed(1), village: selected?.area.village ?? "", pincode: "250342",
-      mobile: "9" + String(Math.floor(100000000 + Math.random() * 899999999)),
-    });
-  };
-
-  if (asg.isLoading) return <Skeleton className="h-96" />;
+  if (work.isLoading) return <Skeleton className="h-96" />;
+  if (work.isError) return <Alert tone="red" icon={TriangleAlert}>Could not load your work. Please refresh the page.</Alert>;
 
   return (
     <>
-      <PageHeader title="New Add Entry" description="Enter one record exactly as it appears in the source document." />
-      {!active.length ? (
-        <Alert tone="amber" icon={TriangleAlert}>No active assignment yet. You can add entries once the Super Admin assigns an area to you.</Alert>
+      <PageHeader
+        title="New Add Entry"
+        description="Enter one school exactly as it appears in the source record."
+        action={<Button asChild variant="light"><Link href="/deo/entries"><ListChecks /> My Entries</Link></Button>}
+      />
+      {!a ? (
+        <Alert tone="amber" icon={TriangleAlert}>
+          You have no active work. Entries can be added once the Super Admin assigns a PIN code area to you. <Link href="/deo/work">Work Status</Link>
+        </Alert>
       ) : (
         <Card>
-          <CardHeader title="Record details" action={<span className="text-sm text-muted">Rate: <b className="text-navy">{money(selected?.rate)}</b> per approved entry</span>} />
-          <form onSubmit={onSubmit} noValidate className="space-y-5 p-5">
-            <Field label="Assignment" htmlFor="asg" required>
-              <Select id="asg" value={selected?.id} onChange={(e) => { setAsgId(e.target.value); form.setValue("village", ""); }}>
-                {active.map((a) => (
-                  <option key={a.id} value={a.id}>{a.id} – {a.taskType} ({a.area.village}, {a.area.district})</option>
-                ))}
-              </Select>
-            </Field>
-            <EntryFields register={form.register} errors={form.formState.errors} />
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button type="submit" disabled={create.isPending}><Send /> {create.isPending ? "Submitting…" : "Submit Entry"}</Button>
-              <Button type="button" variant="light" onClick={() => form.reset({ ...EMPTY, village: selected?.area.village ?? "" })}>Clear</Button>
-              <Button type="button" variant="outline" onClick={fillSample}><Wand2 /> Fill sample</Button>
+          <CardHeader
+            title={`${a.id} · ${a.taskType}`}
+            action={<span className="text-sm text-muted">Rate <b className="text-navy">{money(a.ratePerEntry)}</b> per approved entry</span>}
+          />
+          <div className="space-y-3 border-b border-line p-5">
+            <AreaStrip area={a.area} />
+            <p className="flex items-center gap-1.5 text-xs text-muted">
+              <MapPin className="size-3.5" /> {a.area.village}, {a.area.block} · deadline {fmtDate(a.deadline)}
+            </p>
+            <div className="max-w-md">
+              <Progress value={done} max={a.target} />
             </div>
-          </form>
+          </div>
+          {full ? (
+            <div className="p-5">
+              <Alert tone="green" icon={CircleCheck}>
+                Target reached – you have submitted {done} of {a.target} entries. You can still correct pending or rejected entries in{" "}
+                <Link href="/deo/entries">My Entries</Link>.
+              </Alert>
+            </div>
+          ) : (
+            <form onSubmit={onSubmit} noValidate className="space-y-5 p-5">
+              <h3 className="text-base font-bold text-navy">1 – School</h3>
+              <SchoolFields register={form.register} errors={form.formState.errors} />
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button type="submit" disabled={create.isPending}><Send /> {create.isPending ? "Submitting…" : "Submit Entry"}</Button>
+                <Button type="button" variant="light" onClick={() => form.reset(EMPTY_SCHOOL)}>Clear</Button>
+              </div>
+            </form>
+          )}
         </Card>
       )}
     </>
-  );
-}
-
-export default function NewEntryPage() {
-  return (
-    <Suspense>
-      <NewEntryInner />
-    </Suspense>
   );
 }

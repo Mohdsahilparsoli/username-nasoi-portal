@@ -22,6 +22,8 @@ export interface WorkAssignment {
   completedAt: string | null;
   cancelledAt: string | null;
   createdAt: string;
+  /** Entries submitted (pending + approved), approved and rejected for this work. */
+  progress?: { submitted: number; approved: number; rejected: number };
 }
 
 export interface OperatorRow {
@@ -140,3 +142,70 @@ export const listNotifications = (role: Role) =>
 
 export const markNotificationsRead = (role: Role, v: { ids?: string[]; all?: boolean }) =>
   authRequest<{ ok: true }>(role, "/notifications/read", json("POST", v));
+
+/* ---------- DEO school entries ---------- */
+export type EntryStatus = "pending" | "approved" | "rejected";
+
+export interface SchoolData {
+  udiseCode: string;
+  schoolName: string;
+  educationalBlock: string;
+  ruralUrban: string;
+  cluster: string;
+  lgdBlock: string;
+  lgdPanchayat: string;
+  lgdVillage: string;
+  schoolCategory: string;
+  schoolManagement: string;
+  yearEstablished: number;
+  yearRecognitionPri: number | null;
+  schoolType: string;
+}
+
+export interface SchoolEntry {
+  id: string;
+  assignmentId: string;
+  deoId: string;
+  area: { state: string; district: string; pincode: string };
+  school: SchoolData;
+  ratePerEntry: number;
+  status: EntryStatus;
+  rejectReason: string | null;
+  verifiedAt: string | null;
+  resubmitCount: number;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+export type SchoolInput = Omit<SchoolData, "yearEstablished" | "yearRecognitionPri"> & {
+  yearEstablished: number | string;
+  yearRecognitionPri?: number | string | null;
+};
+
+export interface Totals {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  earnings: number;
+  pendingValue: number;
+  rejectedValue: number;
+}
+
+export interface MySummary {
+  totals: Totals;
+  monthly: (Totals & { month: string })[];
+  currentProgress: { assignmentId: string; target: number; submitted: number; approved: number; pending: number; rejected: number } | null;
+}
+
+export const mySummary = () => authRequest<MySummary>("deo", "/me/summary");
+
+export const myEntries = (f: { status?: string; q?: string } = {}) =>
+  authRequest<{ entries: SchoolEntry[] }>("deo", `/me/entries${qs(f)}`).then((r) => r.entries);
+
+export const myEntry = (id: string) => authRequest<{ entry: SchoolEntry }>("deo", `/me/entries/${encodeURIComponent(id)}`).then((r) => r.entry);
+
+export const createEntry = (v: SchoolInput) => authRequest<{ entry: SchoolEntry }>("deo", "/me/entries", json("POST", v)).then((r) => r.entry);
+
+export const updateEntry = (id: string, v: SchoolInput) =>
+  authRequest<{ entry: SchoolEntry }>("deo", `/me/entries/${encodeURIComponent(id)}`, json("PATCH", v)).then((r) => r.entry);

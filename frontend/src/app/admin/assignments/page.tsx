@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Input, Select } from "@/components/ui/form-controls";
-import { Alert, PageHeader } from "@/components/ui/misc";
+import { Alert, PageHeader, Progress } from "@/components/ui/misc";
 import { useSetWorkStatus, useWorkList } from "@/features/work/hooks";
 import { ConfirmButton, WorkStatusBadge } from "@/features/work/ui";
 import type { WorkAssignment } from "@/lib/api/work";
@@ -97,7 +97,17 @@ function AssignmentsInner() {
           <div>{a.taskType}<span className="mt-0.5 flex items-center gap-1 text-xs text-muted"><MapPin className="size-3" /> {a.area.village}, {a.area.block}, {a.area.district}</span></div>
         ),
       },
-      { accessorKey: "target", header: "Target" },
+      {
+        id: "progress",
+        header: "Progress",
+        accessorFn: (a) => a.progress?.submitted ?? 0,
+        cell: ({ row: { original: a } }) => (
+          <div className="min-w-36">
+            <Progress value={a.progress?.submitted ?? 0} max={a.target} />
+            <span className="text-[11px] text-muted">{a.progress?.approved ?? 0} approved · {a.progress?.rejected ?? 0} rejected</span>
+          </div>
+        ),
+      },
       { accessorKey: "ratePerEntry", header: "Rate", cell: ({ getValue }) => money(Number(getValue())) },
       { accessorKey: "deadline", header: "Deadline", cell: ({ getValue }) => <span className="whitespace-nowrap text-xs">{fmtDate(String(getValue()))}</span> },
       { accessorKey: "status", header: "Status", cell: ({ row: { original: a } }) => <WorkStatusBadge a={a} /> },

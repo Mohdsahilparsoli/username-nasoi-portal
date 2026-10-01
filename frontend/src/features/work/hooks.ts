@@ -78,3 +78,32 @@ export function useMarkNotificationsRead(role: Role) {
     onSuccess: () => qc.invalidateQueries({ queryKey: K.notifications(role) }),
   });
 }
+
+/* ---------- DEO school entries ---------- */
+export function useMySummary() {
+  return useQuery({ queryKey: ["entries", "summary"], queryFn: api.mySummary, refetchOnWindowFocus: true });
+}
+
+export function useMyEntries() {
+  return useQuery({ queryKey: ["entries", "list"], queryFn: () => api.myEntries() });
+}
+
+export function useMyEntry(id: string) {
+  return useQuery({ queryKey: ["entries", "one", id], queryFn: () => api.myEntry(id), retry: false });
+}
+
+/** After any change: refresh entries, summary and work progress. */
+function useRefreshEntries() {
+  const qc = useQueryClient();
+  return () => Promise.all([qc.invalidateQueries({ queryKey: ["entries"] }), qc.invalidateQueries({ queryKey: K.mine })]);
+}
+
+export function useCreateEntry() {
+  const refresh = useRefreshEntries();
+  return useMutation({ mutationFn: api.createEntry, onSuccess: refresh });
+}
+
+export function useUpdateEntry() {
+  const refresh = useRefreshEntries();
+  return useMutation({ mutationFn: (v: { id: string; data: api.SchoolInput }) => api.updateEntry(v.id, v.data), onSuccess: refresh });
+}
