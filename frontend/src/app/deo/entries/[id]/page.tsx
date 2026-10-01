@@ -77,7 +77,7 @@ function EditForm({ entry }: { entry: SchoolEntry }) {
         )}
         <AreaStrip area={entry.area} />
         <h3 className="text-base font-bold text-navy">1 – School</h3>
-        <SchoolFields register={form.register} errors={form.formState.errors} />
+        <SchoolFields register={form.register} errors={form.formState.errors} control={form.control} />
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={update.isPending}>
             {rejected ? <Send /> : <Save />} {update.isPending ? "Saving…" : rejected ? "Resubmit for verification" : "Save changes"}

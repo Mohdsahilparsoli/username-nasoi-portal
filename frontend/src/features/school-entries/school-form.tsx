@@ -1,7 +1,7 @@
 "use client";
 
 import { MapPin, TriangleAlert } from "lucide-react";
-import type { FieldErrors, UseFormRegister, UseFormSetError } from "react-hook-form";
+import { useWatch, type Control, type FieldErrors, type UseFormRegister, type UseFormSetError } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Field, Input, Select } from "@/components/ui/form-controls";
@@ -16,7 +16,7 @@ const text = (label: string, min = 2, max = 80) =>
   z.string().transform((s) => s.replace(/\s+/g, " ").trim()).pipe(z.string().min(min, `Enter ${label}`).max(max, `${label} is too long`));
 const pick = (list: readonly string[], label: string) => z.string().refine((v) => list.includes(v), `Select ${label}`);
 const yearRule = (label: string) =>
-  z.string().trim().regex(/^\d{4}$/, `Enter ${label} as a 4-digit year`).refine((y) => +y >= 1800 && +y <= thisYear(), `${label} must be between 1800 and ${thisYear()}`);
+  z.string().trim().regex(/^\d{4}$/, `Select ${label}`).refine((y) => +y >= 1800 && +y <= thisYear(), `${label} must be between 1800 and ${thisYear()}`);
 
 /** Same rules as the server (src/modules/entries/schema.ts). */
 export const schoolSchema = z
@@ -88,8 +88,15 @@ export function AreaStrip({ area }: { area: { state: string; district: string; p
   );
 }
 
+const FIRST_YEAR = 1800;
+/** Newest first: 2026, 2025 … down to `from`. */
+const yearsFrom = (from: number) => Array.from({ length: Math.max(0, thisYear() - from + 1) }, (_, i) => String(thisYear() - i));
+
 /** "1 – School" fields. */
-export function SchoolFields({ register, errors }: { register: UseFormRegister<SchoolForm>; errors: FieldErrors<SchoolForm> }) {
+export function SchoolFields({ register, errors, control }: { register: UseFormRegister<SchoolForm>; errors: FieldErrors<SchoolForm>; control: Control<SchoolForm> }) {
+  // Recognition cannot be before establishment: earlier years are disabled.
+  const established = useWatch({ control, name: "yearEstablished" });
+  const minRecognition = /^\d{4}$/.test(established ?? "") ? Number(established) : FIRST_YEAR;
   const e = (k: keyof SchoolForm) => errors[k]?.message;
   // Runs before react-hook-form reads the value, so only digits are stored.
   const digits = (max: number) => ({
@@ -108,12 +115,6 @@ export function SchoolFields({ register, errors }: { register: UseFormRegister<S
       </Select>
     </Field>
   );
-  const year = (k: "yearEstablished" | "yearRecognitionPri", label: string, required: boolean, hint?: string) => (
-    <Field label={label} htmlFor={k} required={required} error={e(k)} hint={hint}>
-      <Input id={k} inputMode="numeric" maxLength={4} placeholder="YYYY" aria-invalid={!!e(k)} {...digits(4)} {...register(k)} />
-    </Field>
-  );
-
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       <Field label="UDISE Code" htmlFor="udiseCode" required error={e("udiseCode")} hint="11-digit UDISE+ code of the school">
@@ -128,8 +129,20 @@ export function SchoolFields({ register, errors }: { register: UseFormRegister<S
       {input("lgdVillage", "LGD Village")}
       {select("schoolCategory", "School Category", SCHOOL_CATEGORIES)}
       {select("schoolManagement", "School Management", SCHOOL_MANAGEMENTS)}
-      {year("yearEstablished", "Year of Establishment", true)}
-      {year("yearRecognitionPri", "Year of Recognition – Pri.", false, "Leave blank if not recognised")}
+      <Field label="Year of Establishment" htmlFor="yearEstablished" required error={e("yearEstablished")}>
+        <Select id="yearEstablished" aria-invalid={!!e("yearEstablished")} {...register("yearEstablished")}>
+          <option value="">-- Select year --</option>
+          {yearsFrom(FIRST_YEAR).map((y) => <option key={y}>{y}</option>)}
+        </Select>
+      </Field>
+      <Field label="Year of Recognition – Pri." htmlFor="yearRecognitionPri" error={e("yearRecognitionPri")} hint="Choose “Not recognised” if the school has no recognition">
+        <Select id="yearRecognitionPri" aria-invalid={!!e("yearRecognitionPri")} {...register("yearRecognitionPri")}>
+          <option value="">Not recognised</option>
+          {yearsFrom(FIRST_YEAR).map((y) => (
+            <option key={y} disabled={minRecognition > +y}>{y}</option>
+          ))}
+        </Select>
+      </Field>
       {select("schoolType", "School Type", SCHOOL_TYPES)}
     </div>
   );
@@ -148,7 +161,7 @@ export function SchoolEntryDetail({ entry }: { entry: SchoolEntry }) {
           ["Entry ID", entry.id],
           ["Status", <span key="s" className="flex gap-1.5"><StatusBadge status={entry.status} />{entry.resubmitCount > 0 && <Badge tone="blue">Resubmitted</Badge>}</span>],
           ["Assignment", entry.assignmentId],
-          ["Rate", `${money(entry.ratePerEntry)} if approved`],
+          ["DEO rate", `${money(entry.ratePerEntry)} per approved entry`],
           ["Submitted on", fmtDateTime(entry.submittedAt)],
           ["Verified on", fmtDateTime(entry.verifiedAt)],
         ]}

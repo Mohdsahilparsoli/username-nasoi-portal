@@ -8,8 +8,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { useEntries } from "@/features/entries/hooks";
 import { NotificationBell } from "@/features/work/notification-bell";
+import { useVerifierSummary } from "@/features/verification/hooks";
 import { useMyWork } from "@/features/work/hooks";
 import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
@@ -38,9 +38,11 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/deo/earnings", label: "Earnings & History", icon: Wallet },
   ],
   verifier: [
-    { href: "/verifier", label: "Verify Data", icon: Search, badge: "pending", exact: true },
+    { href: "/verifier", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { href: "/verifier/verify", label: "Verify Data", icon: Search, badge: "pending" },
     { href: "/verifier/approved", label: "Approved", icon: CircleCheck },
     { href: "/verifier/rejected", label: "Rejected", icon: CircleX },
+    { href: "/verifier/income", label: "Income", icon: Wallet },
     { href: "/verifier/profile", label: "Profile", icon: User },
   ],
   admin: [
@@ -210,8 +212,8 @@ function SideLink({ item, active, role, userId }: { item: NavItem; active: boole
 
 function useNavBadge(kind: NavItem["badge"], role: Role, _userId: string) {
   const work = useMyWork(kind === "newAssignments" && role === "deo");
-  const entries = useEntries();
+  const verify = useVerifierSummary(kind === "pending" && role === "verifier");
   if (kind === "newAssignments") return work.data?.current && !work.data.current.seenAt ? 1 : 0;
-  if (kind === "pending") return (entries.data ?? []).filter((e) => e.status === "pending").length;
+  if (kind === "pending") return verify.data?.pending ?? 0;
   return 0;
 }

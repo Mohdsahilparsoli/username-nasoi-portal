@@ -1,118 +1,73 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-import { CircleCheck, CircleX, ClipboardCheck, Clock, Eye, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { CircleCheck, CircleX, ClipboardList, Clock, ShieldCheck, TriangleAlert, User, Wallet } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { useMe } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
-import { Input, Select } from "@/components/ui/form-controls";
-import { Badge, PageHeader, StatCard } from "@/components/ui/misc";
-import { useEntries, useVerifyEntry } from "@/features/entries/hooks";
-import { VerifyDialog } from "@/features/entries/verify-dialog";
-import { useUsers } from "@/features/users/hooks";
-import { fmtDateTime } from "@/lib/utils";
-import type { Entry } from "@/types";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Alert, Badge, EmptyState, PageHeader, Skeleton, StatCard } from "@/components/ui/misc";
+import { useVerifierEntries, useVerifierSummary } from "@/features/verification/hooks";
+import { VerifyDialog } from "@/features/verification/verify-dialog";
+import { fmtDateTime, money } from "@/lib/utils";
 
-export default function VerifierQueuePage() {
+export default function VerifierDashboard() {
   const me = useMe();
-  const entries = useEntries();
-  const deos = useUsers("deo");
-  const verify = useVerifyEntry(me.id);
-  const [deo, setDeo] = useState("");
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState<{ entry: Entry; reject: boolean } | null>(null);
-
-  const all = useMemo(() => entries.data ?? [], [entries.data]);
-  const pending = all.filter((e) => e.status === "pending");
-  const mine = all.filter((e) => e.verifierId === me.id);
-  const today = new Date().toDateString();
-  const deoName = (id: string) => deos.data?.find((u) => u.id === id)?.name ?? id;
-
-  const rows = useMemo(
-    () =>
-      pending
-        .filter((e) => (!deo || e.deoId === deo) && (!q || e.id.toLowerCase().includes(q.toLowerCase()) || e.data.studentName.toLowerCase().includes(q.toLowerCase())))
-        .sort((a, b) => (a.submittedAt > b.submittedAt ? 1 : -1)), // oldest first
-    [pending, deo, q],
-  );
-
-  const columns = useMemo<ColumnDef<Entry, unknown>[]>(
-    () => [
-      {
-        accessorKey: "id",
-        header: "Entry ID",
-        cell: ({ row: { original: e } }) => (
-          <div className="flex flex-wrap items-center gap-1.5"><b className="text-navy">{e.id}</b>{e.resubmitted && <Badge tone="blue">Resubmitted</Badge>}</div>
-        ),
-      },
-      {
-        id: "deo",
-        header: "Operator",
-        accessorFn: (e) => e.deoId,
-        cell: ({ row: { original: e } }) => <div>{deoName(e.deoId)}<span className="block text-xs text-muted">{e.deoId}</span></div>,
-      },
-      {
-        id: "student",
-        header: "Student / Record",
-        accessorFn: (e) => e.data.studentName,
-        cell: ({ row: { original: e } }) => (
-          <div>{e.data.studentName}<span className="block text-xs text-muted">{e.data.className} • Roll {e.data.rollNo} • {e.data.percentage}%</span></div>
-        ),
-      },
-      { accessorKey: "submittedAt", header: "Submitted", cell: ({ getValue }) => <span className="whitespace-nowrap text-xs">{fmtDateTime(String(getValue()))}</span> },
-      {
-        id: "actions",
-        header: "Actions",
-        enableSorting: false,
-        cell: ({ row: { original: e } }) => (
-          <div className="flex flex-wrap gap-1.5">
-            <Button variant="light" size="sm" onClick={() => setOpen({ entry: e, reject: false })}><Eye /> View</Button>
-            <Button
-              variant="success"
-              size="sm"
-              disabled={verify.isPending}
-              onClick={() => verify.mutate({ id: e.id, approve: true }, { onSuccess: () => toast.success(`Entry ${e.id} approved.`), onError: (err) => toast.error(err.message) })}
-            >
-              <CircleCheck /> Approve
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => setOpen({ entry: e, reject: true })}><CircleX /> Reject</Button>
-          </div>
-        ),
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deos.data, verify.isPending],
-  );
+  const s = useVerifierSummary();
+  const queue = useVerifierEntries("pending");
+  const [open, setOpen] = useState<string | null>(null);
+  const n = (v?: number) => (s.isLoading ? "…" : (v ?? 0));
+  const next = (queue.data ?? []).slice(0, 5);
 
   return (
     <>
-      <PageHeader title="Verify Data" description="Check each entry against the source and approve or reject it with a reason." />
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Pending to verify" value={pending.length} icon={Clock} tone="amber" />
-        <StatCard label="Approved by me" value={mine.filter((e) => e.status === "approved").length} icon={CircleCheck} tone="green" href="/verifier/approved" />
-        <StatCard label="Rejected by me" value={mine.filter((e) => e.status === "rejected").length} icon={CircleX} tone="red" href="/verifier/rejected" />
-        <StatCard label="Verified today" value={mine.filter((e) => e.verifiedAt && new Date(e.verifiedAt).toDateString() === today).length} icon={ClipboardCheck} tone="blue" />
+      <PageHeader
+        title={`Welcome, ${me.name}`}
+        description={s.data ? `You earn ${money(s.data.rate)} for every entry you verify (approve or reject).` : "Your verification work at a glance."}
+        action={<Button asChild><Link href="/verifier/verify"><ShieldCheck /> Verify Data</Link></Button>}
+      />
+      {s.isError && <Alert tone="red" icon={TriangleAlert} className="mb-5">Could not load your numbers. Please refresh the page.</Alert>}
+
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+        <StatCard label="Profile" value={me.id} icon={User} href="/verifier/profile" />
+        <StatCard label="Total Assigned" value={n(s.data?.totalAssigned)} icon={ClipboardList} tone="blue" href="/verifier/verify?view=all" />
+        <StatCard label="Approved Entry" value={n(s.data?.approved)} icon={CircleCheck} tone="green" href="/verifier/approved" />
+        <StatCard label="Rejected Entry" value={n(s.data?.rejected)} icon={CircleX} tone="red" href="/verifier/rejected" />
+        <StatCard label="Pending Verification" value={n(s.data?.pending)} icon={Clock} tone="amber" href="/verifier/verify" />
+        <StatCard label="Total Income" value={s.isLoading ? "…" : money(s.data?.income)} icon={Wallet} tone="saffron" href="/verifier/income" />
       </div>
+
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-          <h3 className="font-semibold">Pending verification</h3>
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <Select value={deo} onChange={(e) => setDeo(e.target.value)} className="sm:w-56">
-              <option value="">All operators</option>
-              {deos.data?.map((u) => <option key={u.id} value={u.id}>{u.id} – {u.name}</option>)}
-            </Select>
-            <div className="relative w-full sm:w-56">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ID / student" className="pl-9" />
-            </div>
+        <CardHeader
+          title="Next to verify"
+          action={<Link href="/verifier/verify" className="text-sm text-primary hover:underline">All pending →</Link>}
+        />
+        {queue.isLoading ? (
+          <div className="space-y-3 p-5">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-6" />)}</div>
+        ) : !next.length ? (
+          <EmptyState icon={CircleCheck} text="Nothing pending. New entries will appear here as operators submit them." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-muted">
+                <tr><th className="px-4 py-3">Entry</th><th className="px-4 py-3">School</th><th className="px-4 py-3">Operator</th><th className="px-4 py-3">Submitted</th><th className="px-4 py-3" /></tr>
+              </thead>
+              <tbody>
+                {next.map((e) => (
+                  <tr key={e.id} className="border-t border-line">
+                    <td className="px-4 py-3"><b className="text-navy">{e.id}</b>{e.resubmitCount > 0 && <Badge tone="blue" className="ml-1.5">Resubmitted</Badge>}</td>
+                    <td className="px-4 py-3">{e.school.schoolName}<span className="block text-xs text-muted">UDISE {e.school.udiseCode} · PIN {e.area.pincode}</span></td>
+                    <td className="px-4 py-3">{e.deo.name}<span className="block text-xs text-muted">{e.deo.id}</span></td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">{fmtDateTime(e.submittedAt)}</td>
+                    <td className="px-4 py-3 text-right"><Button size="sm" onClick={() => setOpen(e.id)}><ShieldCheck /> Verify</Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-        <DataTable columns={columns} data={rows} loading={entries.isLoading} emptyText="Nothing pending. All entries are verified." />
+        )}
       </Card>
-      <VerifyDialog entry={open?.entry ?? null} startReject={open?.reject} verifierId={me.id} onClose={() => setOpen(null)} />
+      <VerifyDialog id={open} rate={s.data?.rate} onClose={() => setOpen(null)} />
     </>
   );
 }

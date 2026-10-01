@@ -1,38 +1,32 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RefreshCw, Save } from "lucide-react";
+import { Save, TriangleAlert } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useMe } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form-controls";
-import { PageHeader, Skeleton } from "@/components/ui/misc";
-import { useResetDemo, useSettings, useUpdateSettings } from "@/features/settings/hooks";
+import { Alert, PageHeader, Skeleton } from "@/components/ui/misc";
 import { PasswordCard } from "@/features/users/profile-view";
-import { useSessionStore } from "@/stores/session-store";
+import { useAppSettings, useSaveSettings } from "@/features/verification/hooks";
+import { fmtDateTime } from "@/lib/utils";
 
 const schema = z.object({
-  rate: z.coerce.number().min(1, "Enter a rate above 0").max(1000),
-  payoutWindow: z.string().trim().min(3, "Required"),
+  verifierRate: z.coerce.number({ error: "Enter the verifier rate" }).int("Enter a whole number").min(0, "Rate cannot be negative").max(1000, "Rate is too high"),
+  defaultDeoRate: z.coerce.number({ error: "Enter the DEO rate" }).int("Enter a whole number").min(1, "Rate must be at least ₹1").max(1000, "Rate is too high"),
+  payoutWindow: z.string().trim().min(3, "Enter the payout window").max(80, "Too long"),
 });
 
 export default function SettingsPage() {
-  const me = useMe();
-  const settings = useSettings();
-  const update = useUpdateSettings();
-  const reset = useResetDemo();
-  const signOutAll = useSessionStore((s) => s.signOutAll);
-  const signIn = useSessionStore((s) => s.signIn);
+  const settings = useAppSettings();
+  const save = useSaveSettings();
   const form = useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
-    values: settings.data ? { rate: settings.data.rate, payoutWindow: settings.data.payoutWindow } : undefined,
+    values: settings.data ? { verifierRate: settings.data.verifierRate, defaultDeoRate: settings.data.defaultDeoRate, payoutWindow: settings.data.payoutWindow } : undefined,
   });
   const e = form.formState.errors;
-
-  if (settings.isLoading) return <Skeleton className="h-72" />;
 
   return (
     <>
@@ -40,44 +34,44 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <PasswordCard />
         <Card>
-          <CardHeader title="Payment settings" />
-          <form
-            noValidate
-            className="grid gap-5 p-5 sm:grid-cols-2"
-            onSubmit={form.handleSubmit((v) => update.mutate(v, { onSuccess: () => toast.success("Settings saved.") }))}
-          >
-            <Field label="Default rate per approved entry (₹)" htmlFor="rate" error={e.rate?.message} hint="Used as the default for new assignments.">
-              <Input id="rate" type="number" min={1} {...form.register("rate")} />
-            </Field>
-            <Field label="Payout window" htmlFor="payoutWindow" error={e.payoutWindow?.message}>
-              <Input id="payoutWindow" {...form.register("payoutWindow")} />
-            </Field>
-            <div className="sm:col-span-2"><Button type="submit" disabled={update.isPending}><Save /> Save settings</Button></div>
-          </form>
-        </Card>
-        <Card>
-          <CardHeader title="Demo data" />
-          <CardBody>
-            <p className="mb-4 text-sm text-muted">
-              Until the backend is connected, all data lives in this browser. Reset to restore the original sample operators, assignments and entries.
-            </p>
-            <Button
-              variant="danger"
-              disabled={reset.isPending}
-              onClick={() => {
-                if (!confirm("Reset all demo data? New registrations and entries will be removed.")) return;
-                reset.mutate(undefined, {
-                  onSuccess: () => {
-                    signOutAll();
-                    signIn("admin", { id: me.id, name: me.name });
-                    toast.success("Demo data reset.");
-                  },
-                });
-              }}
+          <CardHeader
+            title="Payment settings"
+            action={settings.data?.updatedAt ? <span className="text-xs text-muted">Last changed {fmtDateTime(settings.data.updatedAt)}</span> : undefined}
+          />
+          {settings.isLoading ? (
+            <div className="p-5"><Skeleton className="h-40" /></div>
+          ) : settings.isError ? (
+            <div className="p-5"><Alert tone="red" icon={TriangleAlert}>Could not load settings. Please refresh the page.</Alert></div>
+          ) : (
+            <form
+              noValidate
+              className="grid gap-5 p-5 sm:grid-cols-2"
+              onSubmit={form.handleSubmit((v) =>
+                save.mutate(v, { onSuccess: () => toast.success("Settings saved."), onError: (err) => toast.error(err.message) }),
+              )}
             >
-              <RefreshCw /> Reset demo data
-            </Button>
-          </CardBody>
+              <Field
+                label="Verifier rate per verified entry (₹)"
+                htmlFor="verifierRate"
+                error={e.verifierRate?.message}
+                hint="Paid to the verifier for every entry approved or rejected. Applies to new verifications."
+              >
+                <Input id="verifierRate" type="number" min={0} inputMode="numeric" {...form.register("verifierRate")} />
+              </Field>
+              <Field
+                label="Default DEO rate per approved entry (₹)"
+                htmlFor="defaultDeoRate"
+                error={e.defaultDeoRate?.message}
+                hint="Filled in when you assign new work (can be changed per assignment)."
+              >
+                <Input id="defaultDeoRate" type="number" min={1} inputMode="numeric" {...form.register("defaultDeoRate")} />
+              </Field>
+              <Field className="sm:col-span-2" label="Payout window" htmlFor="payoutWindow" error={e.payoutWindow?.message}>
+                <Input id="payoutWindow" maxLength={80} {...form.register("payoutWindow")} />
+              </Field>
+              <div className="sm:col-span-2"><Button type="submit" disabled={save.isPending}><Save /> {save.isPending ? "Saving…" : "Save settings"}</Button></div>
+            </form>
+          )}
         </Card>
       </div>
     </>

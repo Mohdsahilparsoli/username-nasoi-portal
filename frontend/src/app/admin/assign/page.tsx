@@ -13,6 +13,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
 import { DistrictOptions, StateOptions } from "@/components/ui/location-options";
 import { Alert, PageHeader, Skeleton } from "@/components/ui/misc";
+import { useAppSettings } from "@/features/verification/hooks";
 import { useCreateWork, useOperators } from "@/features/work/hooks";
 import { AuthError } from "@/lib/api/auth";
 import type { OperatorRow } from "@/lib/api/work";
@@ -52,6 +53,7 @@ function AssignInner() {
   const router = useRouter();
   const deos = useOperators();
   const create = useCreateWork();
+  const settings = useAppSettings();
   const form = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -72,6 +74,12 @@ function AssignInner() {
     setValue("district", u.location.district);
     setValue("pincode", u.location.pincode);
   };
+
+  // Default rate from Settings (admin can still change it for this work).
+  useEffect(() => {
+    if (settings.data && !form.formState.dirtyFields.ratePerEntry) setValue("ratePerEntry", settings.data.defaultDeoRate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.data]);
 
   const preDeo = params.get("deo");
   useEffect(() => {

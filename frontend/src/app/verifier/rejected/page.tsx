@@ -1,7 +1,7 @@
 "use client";
 
-import { VerifiedHistory } from "@/features/entries/verified-history";
+import { VerifierHistory } from "@/features/verification/history";
 
 export default function Page() {
-  return <VerifiedHistory status="rejected" />;
+  return <VerifierHistory decision="rejected" />;
 }

@@ -72,7 +72,7 @@ export default function NewEntryPage() {
           ) : (
             <form onSubmit={onSubmit} noValidate className="space-y-5 p-5">
               <h3 className="text-base font-bold text-navy">1 – School</h3>
-              <SchoolFields register={form.register} errors={form.formState.errors} />
+              <SchoolFields register={form.register} errors={form.formState.errors} control={form.control} />
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button type="submit" disabled={create.isPending}><Send /> {create.isPending ? "Submitting…" : "Submit Entry"}</Button>
                 <Button type="button" variant="light" onClick={() => form.reset(EMPTY_SCHOOL)}>Clear</Button>
