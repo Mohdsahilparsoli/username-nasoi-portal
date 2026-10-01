@@ -23,16 +23,17 @@ import { BANK_DOC_TYPES, EMPTY_FORM, maskAadhaar, PASSWORD_HINT, REGISTER_AS, ST
 const DRAFT_KEY = "nasoi_registration_draft_v5";
 
 /** Uploaded files: sent to the server as soon as they are chosen; kept in memory for "View". */
-type DocKey = "aadhaarDocName" | "panDocName" | "bankDocName" | "photoName" | "signatureName";
+type DocKey = "aadhaarFrontName" | "aadhaarBackName" | "panDocName" | "bankDocName" | "photoName" | "signatureName";
 const DOC_KIND: Record<DocKey, DocumentKind> = {
-  aadhaarDocName: "aadhaar",
+  aadhaarFrontName: "aadhaar_front",
+  aadhaarBackName: "aadhaar_back",
   panDocName: "pan",
   bankDocName: "bank_proof",
   photoName: "photo",
   signatureName: "signature",
 };
 /** Longest side (px) images are reduced to before upload. */
-const MAX_SIDE: Record<DocKey, number> = { aadhaarDocName: 1800, panDocName: 1800, bankDocName: 1800, photoName: 600, signatureName: 800 };
+const MAX_SIDE: Record<DocKey, number> = { aadhaarFrontName: 1800, aadhaarBackName: 1800, panDocName: 1800, bankDocName: 1800, photoName: 600, signatureName: 800 };
 const IMG = "image/png,image/jpeg,.png,.jpg,.jpeg";
 const DOC = ".pdf,application/pdf,image/png,image/jpeg,.png,.jpg,.jpeg";
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -45,7 +46,7 @@ const SERVER_FIELD: Record<string, [number, keyof RegistrationForm]> = {
   pincode: [1, "pincode"], policeStation: [1, "policeStation"], address: [1, "address"],
   bankName: [2, "bankName"], accountHolder: [2, "holder"], accountNumber: [2, "account"], ifsc: [2, "ifsc"],
   qualification: [3, "qualification"], aadhaar: [3, "aadhaar"], pan: [3, "pan"], bankProofType: [3, "bankDocType"],
-  "documents.aadhaar": [3, "aadhaarDocName"], "documents.pan": [3, "panDocName"], "documents.bank_proof": [3, "bankDocName"],
+  "documents.aadhaar_front": [3, "aadhaarFrontName"], "documents.aadhaar_back": [3, "aadhaarBackName"], "documents.pan": [3, "panDocName"], "documents.bank_proof": [3, "bankDocName"],
   "documents.photo": [3, "photoName"], "documents.signature": [3, "signatureName"],
   password: [4, "password"], declaration: [4, "declare"], terms: [4, "terms"],
 };
@@ -128,7 +129,7 @@ export function RegisterWizard() {
         reset({
           ...EMPTY_FORM, ...d.values, ...(preset ? { role: preset } : {}),
           account: "", account2: "", aadhaar: "", password: "", password2: "",
-          aadhaarDocName: "", panDocName: "", bankDocName: "", photoName: "", photo: "", signatureName: "", signature: "",
+          aadhaarFrontName: "", aadhaarBackName: "", panDocName: "", bankDocName: "", photoName: "", photo: "", signatureName: "", signature: "",
         });
         setStep(Math.min(d.step, STEPS.length - 1));
         setDraftLoaded(true);
@@ -227,7 +228,7 @@ export function RegisterWizard() {
           throw new Error(`Please complete "${STEPS[i].title}".`);
         }
       }
-      const need: DocKey[] = ["aadhaarDocName", "bankDocName", "photoName", "signatureName", ...(values.pan ? (["panDocName"] as DocKey[]) : [])];
+      const need: DocKey[] = ["aadhaarFrontName", "aadhaarBackName", "bankDocName", "photoName", "signatureName", ...(values.pan ? (["panDocName"] as DocKey[]) : [])];
       const missing = need.find((k) => !uploads[k]);
       if (missing) {
         goTo(3);
@@ -245,7 +246,8 @@ export function RegisterWizard() {
         qualification: values.qualification, aadhaar: values.aadhaar, pan: values.pan ? values.pan.toUpperCase() : undefined,
         bankProofType: values.bankDocType,
         documents: {
-          aadhaar: uploads.aadhaarDocName!,
+          aadhaar_front: uploads.aadhaarFrontName!,
+          aadhaar_back: uploads.aadhaarBackName!,
           ...(values.pan ? { pan: uploads.panDocName! } : {}),
           bank_proof: uploads.bankDocName!,
           photo: uploads.photoName!,
@@ -431,19 +433,34 @@ export function RegisterWizard() {
                   <Field label="Aadhaar Card Number" htmlFor="aadhaar" required error={err("aadhaar")} hint="12 digits, without spaces">
                     <Input id="aadhaar" inputMode="numeric" autoComplete="off" maxLength={12} className="sm:max-w-xs" aria-invalid={!!err("aadhaar")} {...register("aadhaar", digits)} />
                   </Field>
-                  <Field label="Upload Aadhaar Card" required error={err("aadhaarDocName")}>
-                    <FileUpload
-                      fileName={v.aadhaarDocName}
-                      accept={DOC}
-                      hint="Front and back in one file · JPG, PNG or PDF (PDF max 2 MB)"
-                      maxMb={10}
-                      maxPdfMb={2}
-                      invalid={!!err("aadhaarDocName")}
-                      viewUrl={fileUrls.aadhaarDocName}
-                      onFile={(f) => attach("aadhaarDocName", f)}
-                      onClear={() => detach("aadhaarDocName")}
-                    />
-                  </Field>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Aadhaar Card – Front Photo" required error={err("aadhaarFrontName")}>
+                      <FileUpload
+                        kind="image"
+                        fileName={v.aadhaarFrontName}
+                        accept={IMG}
+                        hint="Side with your photo · JPG or PNG"
+                        maxMb={10}
+                        invalid={!!err("aadhaarFrontName")}
+                        viewUrl={fileUrls.aadhaarFrontName}
+                        onFile={(f) => attach("aadhaarFrontName", f)}
+                        onClear={() => detach("aadhaarFrontName")}
+                      />
+                    </Field>
+                    <Field label="Aadhaar Card – Back Photo" required error={err("aadhaarBackName")}>
+                      <FileUpload
+                        kind="image"
+                        fileName={v.aadhaarBackName}
+                        accept={IMG}
+                        hint="Side with your address · JPG or PNG"
+                        maxMb={10}
+                        invalid={!!err("aadhaarBackName")}
+                        viewUrl={fileUrls.aadhaarBackName}
+                        onFile={(f) => attach("aadhaarBackName", f)}
+                        onClear={() => detach("aadhaarBackName")}
+                      />
+                    </Field>
+                  </div>
                 </Section>
 
                 <Section title="PAN Card" optional>
@@ -555,7 +572,8 @@ export function RegisterWizard() {
                 <UploadedDocs
                   onEdit={() => goTo(3)}
                   docs={[
-                    { label: "Aadhaar Card", name: v.aadhaarDocName, url: fileUrls.aadhaarDocName, required: true },
+                    { label: "Aadhaar Card – Front", name: v.aadhaarFrontName, url: fileUrls.aadhaarFrontName, required: true, image: true },
+                    { label: "Aadhaar Card – Back", name: v.aadhaarBackName, url: fileUrls.aadhaarBackName, required: true, image: true },
                     { label: "PAN Card", name: v.panDocName, url: fileUrls.panDocName, required: false },
                     { label: v.bankDocType || "Bank Passbook / Cancelled Cheque", name: v.bankDocName, url: fileUrls.bankDocName, required: true },
                     { label: "Passport Size Photo", name: v.photoName, url: fileUrls.photoName, required: true, image: true },

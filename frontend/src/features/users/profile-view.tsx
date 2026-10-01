@@ -50,6 +50,8 @@ const digits = { onChange: (e: React.ChangeEvent<HTMLInputElement>) => (e.target
 
 const DOC_LABEL: Record<string, string> = {
   aadhaar: "Aadhaar Card",
+  aadhaar_front: "Aadhaar Card – Front",
+  aadhaar_back: "Aadhaar Card – Back",
   pan: "PAN Card",
   bank_proof: "Bank Passbook / Cancelled Cheque",
   photo: "Passport Size Photo",
@@ -214,7 +216,7 @@ function BankCard({ u }: { u: MyProfile }) {
 
 function DocumentsCard({ u }: { u: MyProfile }) {
   const { role } = useMe();
-  const order = ["aadhaar", "pan", "bank_proof", "photo", "signature"];
+  const order = ["aadhaar", "aadhaar_front", "aadhaar_back", "pan", "bank_proof", "photo", "signature"];
   const docs = [...u.documents].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   return (
     <Card>

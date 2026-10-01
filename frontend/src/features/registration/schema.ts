@@ -80,7 +80,8 @@ const PAN_RX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 export const documentsSchema = z.object({
   qualification: z.string().min(1, "Select your highest qualification"),
   aadhaar: z.string().refine(isValidAadhaar, "Enter a valid 12-digit Aadhaar number"),
-  aadhaarDocName: z.string().min(1, "Please upload your Aadhaar card"),
+  aadhaarFrontName: z.string().min(1, "Please upload the front photo of your Aadhaar card"),
+  aadhaarBackName: z.string().min(1, "Please upload the back photo of your Aadhaar card"),
   // PAN card is optional, but if a number or a file is given, both are needed.
   pan: z.string().trim().toUpperCase().refine((v) => v === "" || PAN_RX.test(v), "Enter a valid PAN (e.g. ABCDE1234F)"),
   panDocName: z.string(),
@@ -130,7 +131,7 @@ export const EMPTY_FORM: RegistrationForm = {
   name: "", fatherName: "", motherName: "", dob: "", email: "", mobile: "", gender: "", category: "", religion: "",
   country: "India", state: "", district: "", tehsil: "", postOffice: "", pincode: "", policeStation: "", address: "",
   bankName: "", holder: "", account: "", account2: "", ifsc: "",
-  qualification: "", aadhaar: "", aadhaarDocName: "", pan: "", panDocName: "", bankDocType: "", bankDocName: "",
+  qualification: "", aadhaar: "", aadhaarFrontName: "", aadhaarBackName: "", pan: "", panDocName: "", bankDocType: "", bankDocName: "",
   photoName: "", photo: "", signatureName: "", signature: "",
   password: "", password2: "",
   declare: false, terms: false,

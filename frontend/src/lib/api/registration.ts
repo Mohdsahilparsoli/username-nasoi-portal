@@ -8,7 +8,7 @@
 import type { Role } from "@/types";
 import { authRaw, authRequest, request } from "./auth";
 
-export type DocumentKind = "aadhaar" | "pan" | "bank_proof" | "photo" | "signature";
+export type DocumentKind = "aadhaar" | "aadhaar_front" | "aadhaar_back" | "pan" | "bank_proof" | "photo" | "signature";
 export type UploadRef = { id: string; token: string };
 
 export interface RegistrationPayload {
@@ -19,7 +19,7 @@ export interface RegistrationPayload {
   policeStation: string; address: string;
   bankName: string; accountHolder: string; accountNumber: string; ifsc: string;
   qualification: string; aadhaar: string; pan?: string; bankProofType: string;
-  documents: { aadhaar: UploadRef; pan?: UploadRef; bank_proof: UploadRef; photo: UploadRef; signature: UploadRef };
+  documents: { aadhaar_front: UploadRef; aadhaar_back: UploadRef; pan?: UploadRef; bank_proof: UploadRef; photo: UploadRef; signature: UploadRef };
   password: string; declaration: true; terms: true;
 }
 
