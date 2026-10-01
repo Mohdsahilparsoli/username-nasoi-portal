@@ -32,7 +32,7 @@ export async function uploadDocument(kind: DocumentKind, file: Blob, fileName: s
 }
 
 export async function submitRegistration(payload: RegistrationPayload) {
-  return request<{ user: { id: string; role: "deo" | "verifier"; name: string; mobile: string; email: string } }>("/registrations", {
+  return request<{ user: { id: string; role: "deo" | "verifier"; name: string; mobile: string; email: string }; emailSent?: boolean }>("/registrations", {
     method: "POST",
     body: JSON.stringify(payload),
   });

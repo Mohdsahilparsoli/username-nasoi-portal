@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Check, CircleCheck, ClipboardList, Copy, ExternalLink, FileText, ImageIcon, Info, KeyRound, LogIn, Pencil, Send, ShieldCheck, UserCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleCheck, ClipboardList, Copy, ExternalLink, FileText, ImageIcon, Info, KeyRound, LogIn, MailCheck, Pencil, Send, ShieldCheck, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -102,7 +102,7 @@ export function RegisterWizard() {
   const [step, setStep] = useState(0);
   const stepRef = useRef(0);
   stepRef.current = step;
-  const [done, setDone] = useState<{ id: string; role: "deo" | "verifier"; name: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; role: "deo" | "verifier"; name: string; email: string; emailSent: boolean } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [fileUrls, setFileUrls] = useState<Partial<Record<DocKey, string>>>({});
   const [uploads, setUploads] = useState<Partial<Record<DocKey, UploadRef>>>({});
@@ -257,9 +257,9 @@ export function RegisterWizard() {
       };
       return submitRegistration(payload);
     },
-    onSuccess: ({ user }) => {
+    onSuccess: ({ user, emailSent }) => {
       localStorage.removeItem(DRAFT_KEY);
-      setDone({ id: user.id, role: user.role, name: user.name });
+      setDone({ id: user.id, role: user.role, name: user.name, email: user.email, emailSent: !!emailSent });
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     onError: showServerError,
@@ -774,7 +774,7 @@ function ReviewBlock({ title, rows, onEdit, className }: { title: string; rows: 
   );
 }
 
-function Success({ id, role, name }: { id: string; role: "deo" | "verifier"; name: string }) {
+function Success({ id, role, name, email, emailSent }: { id: string; role: "deo" | "verifier"; name: string; email: string; emailSent: boolean }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(id);
@@ -799,6 +799,12 @@ function Success({ id, role, name }: { id: string; role: "deo" | "verifier"; nam
           </div>
         ))}
       </div>
+      {emailSent && (
+        <p className="mt-4 flex items-start gap-2 rounded-lg bg-primary-soft/60 p-3 text-left text-sm text-navy">
+          <MailCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>A confirmation e-mail with your Registration ID has been sent to <b className="break-all">{email}</b>.</span>
+        </p>
+      )}
       <p className="mt-3 text-xs text-muted">
         Please note your Registration ID. Log in with the Registration ID, mobile number or email ID and the password you created.
       </p>
