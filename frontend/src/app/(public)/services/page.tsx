@@ -1,17 +1,19 @@
-import { FileText, GraduationCap, School } from "lucide-react";
+import { Award, ClipboardList, GraduationCap, HandHeart, IdCard } from "lucide-react";
 import { PageBanner } from "@/components/layout/page-banner";
 import { Badge } from "@/components/ui/misc";
 
 export const metadata = { title: "Services" };
 
 const SERVICES = [
-  { icon: GraduationCap, t: "Student Academic Records", d: "Class 10th and 12th student details from school registers – name, parents, date of birth, roll number, board and percentage." },
-  { icon: School, t: "School Survey Forms", d: "Area-wise survey of schools and enrolled students, entered village by village or ward by ward." },
-  { icon: FileText, t: "Scholarship Applications", d: "Digitising scholarship application forms received in batches so they can be processed faster." },
+  { icon: IdCard, t: "Student UHID Card Service", d: "Collection and entry of student details for the Student UHID card." },
+  { icon: Award, t: "National Scholarship Eligibility Examination Test (NSEET)", d: "Student registration and record work for the NSEET scholarship eligibility test." },
+  { icon: ClipboardList, t: "Data Entry Services", d: "Accurate digitisation of school and student records, entered area by area." },
+  { icon: HandHeart, t: "Students Education Support Services", d: "Support work for students' education programmes and their records." },
+  { icon: GraduationCap, t: "Academic Management Services", d: "Record keeping and data management for schools and academic institutions." },
 ];
 
 const FLOW: [string, string, string, React.ReactNode][] = [
-  ["1. Assignment", "Super Admin", "Assigns an area, task type, target and rate to a DEO", <Badge key="a" tone="blue">New</Badge>],
+  ["1. Assignment", "Super Admin", "Assigns a PIN code area, service, target and rate to a DEO", <Badge key="a" tone="blue">New</Badge>],
   ["2. Entry", "DEO", "Fills the entry form for each record in the assigned area", <Badge key="b" tone="amber">Pending</Badge>],
   ["3. Verification", "Verifier", "Checks the entry against the source and approves or rejects it", <span key="c" className="flex gap-1"><Badge tone="green">Approved</Badge><Badge tone="red">Rejected</Badge></span>],
   ["4. Correction", "DEO", "Reads the rejection reason, corrects and resubmits the entry", <Badge key="d" tone="amber">Pending</Badge>],
@@ -21,7 +23,7 @@ const FLOW: [string, string, string, React.ReactNode][] = [
 export default function ServicesPage() {
   return (
     <>
-      <PageBanner title="Services" subtitle="Types of data entry work handled on the portal" />
+      <PageBanner title="Services" subtitle="Services of National Academic Services of India" />
       <section className="py-14">
         <div className="mx-auto grid max-w-6xl gap-5 px-4 md:grid-cols-3">
           {SERVICES.map((s) => (

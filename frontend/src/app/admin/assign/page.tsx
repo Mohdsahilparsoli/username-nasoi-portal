@@ -29,7 +29,7 @@ function in30Days() {
 
 const schema = z.object({
   deoId: z.string().min(1, "Select an operator"),
-  taskType: z.string().min(1, "Select the type of data entry"),
+  taskType: z.string().min(1, "Select the service"),
   target: z.coerce.number({ error: "Enter the number of entries" }).int("Enter a whole number").min(1, "Target must be at least 1").max(100000, "Target is too large"),
   state: z.string().min(1, "Select state"),
   district: z.string().min(1, "Select district"),
@@ -113,7 +113,7 @@ function AssignInner() {
 
   return (
     <>
-      <PageHeader title="Assign Work" description="Assign a PIN code area and type of data entry to a Data Entry Operator." />
+      <PageHeader title="Assign Work" description="Assign a PIN code area and a NASOI service to a Data Entry Operator." />
       <Alert tone="blue" icon={Info} className="mb-5">
         One operator gets <b>one assignment at a time</b> and one PIN code can be with <b>only one operator</b> at a time.
         An operator becomes eligible for new work after the current one is marked completed.
@@ -142,7 +142,7 @@ function AssignInner() {
                 <Link href={`/admin/operators/${selected.id}`} className="text-primary hover:underline">View profile</Link>
               </p>
             )}
-            <Field label="Type of data entry" htmlFor="taskType" required error={e.taskType?.message}>
+            <Field label="Service" htmlFor="taskType" required error={e.taskType?.message}>
               <Select id="taskType" aria-invalid={!!e.taskType} {...register("taskType")}>
                 <option value="">-- Select --</option>
                 {TASK_TYPES.map((t) => <option key={t}>{t}</option>)}

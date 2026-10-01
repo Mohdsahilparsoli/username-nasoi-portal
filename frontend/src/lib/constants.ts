@@ -6,10 +6,13 @@ export { STATES_LIST, UNION_TERRITORIES } from "./india-locations";
 /** All States / UTs of India → districts (A–Z). */
 export const STATES: Record<string, string[]> = STATE_DISTRICTS;
 
+/** NASOI services – the type of work in an assignment (same list as the backend). */
 export const TASK_TYPES = [
-  "Student Academic Record",
-  "School Survey Form",
-  "Scholarship Application Data",
+  "Student UHID Card Service",
+  "National Scholarship Eligibility Examination Test (NSEET)",
+  "Data Entry Services",
+  "Students Education Support Services",
+  "Academic Management Services",
 ] as const;
 
 export const REJECT_REASONS = [
