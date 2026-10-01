@@ -8,8 +8,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { useAssignments } from "@/features/assignments/hooks";
 import { useEntries } from "@/features/entries/hooks";
+import { NotificationBell } from "@/features/work/notification-bell";
+import { useMyWork } from "@/features/work/hooks";
 import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
 import { cn, initials } from "@/lib/utils";
@@ -136,6 +137,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
         </Link>
         <span className="hidden rounded-full bg-navy px-2.5 py-0.5 text-[11px] font-semibold text-white sm:inline">{ROLE_META[role].short}</span>
         <div className="ml-auto flex items-center gap-3">
+          <NotificationBell role={role} />
           <div className="hidden text-right leading-tight sm:block">
             <b className="block text-sm text-navy">{session.name}</b>
             <small className="text-xs text-muted">{session.id}</small>
@@ -195,10 +197,10 @@ function SideLink({ item, active, role, userId }: { item: NavItem; active: boole
   );
 }
 
-function useNavBadge(kind: NavItem["badge"], role: Role, userId: string) {
-  const asg = useAssignments(role === "deo" ? userId : undefined);
+function useNavBadge(kind: NavItem["badge"], role: Role, _userId: string) {
+  const work = useMyWork(kind === "newAssignments" && role === "deo");
   const entries = useEntries();
-  if (kind === "newAssignments") return (asg.data ?? []).filter((a) => !a.seenAt).length;
+  if (kind === "newAssignments") return work.data?.current && !work.data.current.seenAt ? 1 : 0;
   if (kind === "pending") return (entries.data ?? []).filter((e) => e.status === "pending").length;
   return 0;
 }

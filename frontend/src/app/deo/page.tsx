@@ -7,18 +7,17 @@ import { useMe } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState, PageHeader, Progress, Skeleton, StatCard, StatGrid, StatusBadge } from "@/components/ui/misc";
-import { useAssignments } from "@/features/assignments/hooks";
 import { useEntries } from "@/features/entries/hooks";
+import { useMyWork } from "@/features/work/hooks";
 import { fmtDate, money, statsOf } from "@/lib/utils";
 
 export default function DeoDashboard() {
   const me = useMe();
   const entries = useEntries(me.id);
-  const asg = useAssignments(me.id);
+  const work = useMyWork();
   const list = useMemo(() => entries.data ?? [], [entries.data]);
   const s = statsOf(list);
-  const newCount = (asg.data ?? []).filter((a) => !a.seenAt).length;
-  const active = (asg.data ?? []).filter((a) => a.status === "active");
+  const current = work.data?.current;
 
   return (
     <>
@@ -28,9 +27,10 @@ export default function DeoDashboard() {
         action={<Button asChild><Link href="/deo/entries/new"><CirclePlus /> New Entry</Link></Button>}
       />
 
-      {newCount > 0 && (
+      {current && !current.seenAt && (
         <Alert tone="blue" icon={Bell} className="mb-5">
-          You have <b>{newCount}</b> new work assignment{newCount > 1 ? "s" : ""} from the admin. <Link href="/deo/work">View now →</Link>
+          New work has been assigned to you: <b>{current.id}</b> – {current.taskType} for PIN code <b>{current.area.pincode}</b>.{" "}
+          <Link href="/deo/work">View now →</Link>
         </Alert>
       )}
 
@@ -73,26 +73,23 @@ export default function DeoDashboard() {
         <Card>
           <CardHeader title="Assigned area" action={<Link href="/deo/work" className="text-sm text-primary hover:underline">Details →</Link>} />
           <div className="space-y-5 p-5">
-            {asg.isLoading ? (
+            {work.isLoading ? (
               <Skeleton className="h-16" />
-            ) : active.length === 0 ? (
-              <p className="text-sm text-muted">No area has been assigned to you yet. The Super Admin will assign work shortly.</p>
+            ) : !current ? (
+              <p className="text-sm text-muted">No work is assigned to you right now. You will get a notification when the Super Admin assigns work.</p>
             ) : (
-              active.map((a) => {
-                const done = list.filter((e) => e.assignmentId === a.id).length;
-                return (
-                  <div key={a.id}>
-                    <div className="flex items-start justify-between gap-2">
-                      <b className="text-navy">{a.taskType}</b>
-                      {!a.seenAt && <Badge tone="blue">New</Badge>}
-                    </div>
-                    <p className="mb-2 mt-0.5 flex items-center gap-1 text-xs text-muted">
-                      <MapPin className="size-3.5" /> {[a.area.village, a.area.block, a.area.district, a.area.state].join(", ")}
-                    </p>
-                    <Progress value={done} max={a.target} />
-                  </div>
-                );
-              })
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <b className="text-navy">{current.taskType}</b>
+                  {!current.seenAt && <Badge tone="blue">New</Badge>}
+                </div>
+                <p className="mt-0.5 text-xs text-muted">{current.id} · PIN <b>{current.area.pincode}</b></p>
+                <p className="mb-2 mt-0.5 flex items-center gap-1 text-xs text-muted">
+                  <MapPin className="size-3.5" /> {[current.area.village, current.area.block, current.area.district, current.area.state].join(", ")}
+                </p>
+                <Progress value={list.filter((e) => e.assignmentId === current.id).length} max={current.target} />
+                <p className="mt-2 text-xs text-muted">Target {current.target} entries · deadline {fmtDate(current.deadline)}</p>
+              </div>
             )}
           </div>
         </Card>

@@ -6,21 +6,20 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge, PageHeader, Skeleton, StatCard } from "@/components/ui/misc";
-import { useAssignments } from "@/features/assignments/hooks";
 import { useEntries } from "@/features/entries/hooks";
-import { useUsers } from "@/features/users/hooks";
+import { useOperators, useWorkList } from "@/features/work/hooks";
 import { fmtMonth, money, monthlyHistory, statsOf } from "@/lib/utils";
 
 export default function AdminOverview() {
   const entries = useEntries();
-  const deos = useUsers("deo");
-  const asg = useAssignments();
+  const deos = useOperators();
+  const active = useWorkList({ status: "active" });
   if (entries.isLoading || deos.isLoading) return <Skeleton className="h-96" />;
 
   const all = entries.data ?? [];
   const s = statsOf(all);
   const d = deos.data ?? [];
-  const unassigned = d.filter((u) => !(asg.data ?? []).some((a) => a.deoId === u.id));
+  const eligible = d.filter((u) => u.eligible);
   const recent = [...d].sort((a, b) => (a.joinedAt < b.joinedAt ? 1 : -1)).slice(0, 6);
   const top = d
     .map((u) => ({ u, s: statsOf(all.filter((e) => e.deoId === u.id)) }))
@@ -37,13 +36,13 @@ export default function AdminOverview() {
       />
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Total Operators" value={d.length} icon={Users} href="/admin/operators" />
-        <StatCard label="Awaiting assignment" value={unassigned.length} icon={Bell} tone="blue" href="/admin/operators" />
+        <StatCard label="Eligible for work" value={eligible.length} icon={Bell} tone="blue" href="/admin/operators" />
         <StatCard label="Total Entries" value={s.total} icon={ClipboardList} href="/admin/entries" />
         <StatCard label="Total Payable" value={money(s.earnings)} icon={Wallet} tone="saffron" href="/admin/payouts" />
         <StatCard label="Pending" value={s.pending} icon={Clock} tone="amber" href="/admin/entries?status=pending" />
         <StatCard label="Approved" value={s.approved} icon={CircleCheck} tone="green" href="/admin/entries?status=approved" />
         <StatCard label="Rejected" value={s.rejected} icon={CircleX} tone="red" href="/admin/entries?status=rejected" />
-        <StatCard label="Active Assignments" value={(asg.data ?? []).filter((a) => a.status === "active").length} icon={Target} tone="blue" href="/admin/assignments" />
+        <StatCard label="Active Assignments" value={active.data?.length ?? 0} icon={Target} tone="blue" href="/admin/assignments" />
       </div>
 
       <Card className="mb-6">
@@ -72,15 +71,23 @@ export default function AdminOverview() {
               <tr><th className="px-4 py-3">ID</th><th className="px-4 py-3">Name</th><th className="px-4 py-3">District</th><th className="px-4 py-3">Work</th></tr>
             </thead>
             <tbody>
+              {!recent.length && (
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-muted">No operator has registered yet.</td></tr>
+              )}
               {recent.map((u) => {
-                const has = (asg.data ?? []).some((a) => a.deoId === u.id);
                 return (
                   <tr key={u.id} className="border-t border-line">
                     <td className="px-4 py-3 font-semibold text-navy">{u.id}</td>
                     <td className="px-4 py-3">{u.name}</td>
-                    <td className="px-4 py-3 text-xs">{u.district}</td>
+                    <td className="px-4 py-3 text-xs">{u.location ? `${u.location.district} – ${u.location.pincode}` : "—"}</td>
                     <td className="px-4 py-3">
-                      {has ? <Badge tone="green">Assigned</Badge> : <Button asChild size="sm"><Link href={`/admin/assign?deo=${u.id}`}>Assign</Link></Button>}
+                      {u.status === "blocked" ? (
+                        <Badge tone="red">Blocked</Badge>
+                      ) : u.currentAssignment ? (
+                        <Badge tone="amber">{u.currentAssignment.id}</Badge>
+                      ) : (
+                        <Button asChild size="sm"><Link href={`/admin/assign?deo=${u.id}`}>Assign</Link></Button>
+                      )}
                     </td>
                   </tr>
                 );

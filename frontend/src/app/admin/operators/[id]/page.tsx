@@ -1,106 +1,212 @@
 "use client";
 
-import { ArrowLeft, Ban, CircleCheck, CircleX, ClipboardList, Clock, Target, TriangleAlert, Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Ban, CircleCheck, ExternalLink, FileText, ImageIcon, MapPin, Target, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Alert, Badge, DetailGrid, PageHeader, Progress, Skeleton, StatCard } from "@/components/ui/misc";
-import { useAssignments } from "@/features/assignments/hooks";
-import { useEntries } from "@/features/entries/hooks";
-import { useUpdateUser, useUser } from "@/features/users/hooks";
-import { maskAadhaar } from "@/features/registration/schema";
-import { fmtDate, initials, maskAccount, money, statsOf } from "@/lib/utils";
+import { Alert, Badge, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
+import { useOperator, useSetOperatorStatus } from "@/features/work/hooks";
+import { ConfirmButton, WorkStatusBadge, areaText } from "@/features/work/ui";
+import { authRaw } from "@/lib/api/auth";
+import { openOperatorDocument, type OperatorDetail } from "@/lib/api/work";
+import { fmtDate, fmtDateTime, initials, money } from "@/lib/utils";
+
+const DOC_LABEL: Record<string, string> = {
+  aadhaar: "Aadhaar Card",
+  aadhaar_front: "Aadhaar Card – Front",
+  aadhaar_back: "Aadhaar Card – Back",
+  pan: "PAN Card",
+  bank_proof: "Bank Passbook / Cancelled Cheque",
+  photo: "Passport Size Photo",
+  signature: "Signature",
+};
+const DOC_ORDER = Object.keys(DOC_LABEL);
 
 export default function OperatorDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const user = useUser(id);
-  const entries = useEntries(id);
-  const asg = useAssignments(id);
-  const update = useUpdateUser(id);
+  const q = useOperator(id);
+  const setStatus = useSetOperatorStatus();
 
-  if (user.isLoading) return <Skeleton className="h-96" />;
-  const u = user.data;
-  if (!u) return <Alert tone="red" icon={TriangleAlert}>Operator not found. <Link href="/admin/operators">Back</Link></Alert>;
-  const s = statsOf(entries.data ?? []);
+  if (q.isLoading) return <Skeleton className="h-96" />;
+  const u = q.data;
+  if (!u) {
+    return (
+      <Alert tone="red" icon={TriangleAlert}>
+        {q.error instanceof Error ? q.error.message : "Operator not found."} <Link href="/admin/operators">Back to operators</Link>
+      </Alert>
+    );
+  }
   const blocked = u.status === "blocked";
+  const current = u.assignments.find((a) => a.status === "active");
+  const p = u.profile;
 
   return (
     <>
       <PageHeader
         title={`${u.name} (${u.id})`}
-        description={`Registered on ${fmtDate(u.joinedAt)}`}
+        description={`Registered on ${fmtDate(u.joinedAt)}${u.lastLoginAt ? ` · last login ${fmtDateTime(u.lastLoginAt)}` : " · never logged in"}`}
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="light"><Link href="/admin/operators"><ArrowLeft /> Back</Link></Button>
-            <Button
-              variant={blocked ? "success" : "danger"}
-              disabled={update.isPending}
-              onClick={() =>
-                update.mutate({ status: blocked ? "active" : "blocked" }, { onSuccess: () => toast.success(`${u.name} ${blocked ? "unblocked" : "blocked"}.`) })
+            <ConfirmButton
+              trigger={<Button variant={blocked ? "success" : "danger"}>{blocked ? <><CircleCheck /> Unblock</> : <><Ban /> Block</>}</Button>}
+              title={blocked ? `Unblock ${u.id}?` : `Block ${u.id}?`}
+              description={
+                blocked
+                  ? "The operator will be able to log in again and can receive new work."
+                  : "The operator will be logged out from all devices immediately and cannot log in until unblocked."
               }
-            >
-              {blocked ? <><CircleCheck /> Unblock</> : <><Ban /> Block</>}
-            </Button>
-            <Button asChild><Link href={`/admin/assign?deo=${u.id}`}><Target /> Assign work</Link></Button>
+              confirmLabel={blocked ? "Unblock" : "Block operator"}
+              variant={blocked ? "success" : "danger"}
+              pending={setStatus.isPending}
+              onConfirm={(close) =>
+                setStatus.mutate(
+                  { id: u.id, status: blocked ? "active" : "blocked" },
+                  {
+                    onSuccess: () => {
+                      toast.success(`${u.name} ${blocked ? "unblocked" : "blocked"}.`);
+                      close();
+                    },
+                    onError: (e) => toast.error(e.message),
+                  },
+                )
+              }
+            />
+            {u.eligible ? (
+              <Button asChild><Link href={`/admin/assign?deo=${u.id}`}><Target /> Assign work</Link></Button>
+            ) : (
+              <Button disabled><Target /> Assign work</Button>
+            )}
           </div>
         }
       />
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total entries" value={s.total} icon={ClipboardList} />
-        <StatCard label="Pending" value={s.pending} icon={Clock} tone="amber" />
-        <StatCard label="Rejected" value={s.rejected} icon={CircleX} tone="red" />
-        <StatCard label="Earnings" value={money(s.earnings)} icon={Wallet} tone="saffron" />
-      </div>
+
+      {current ? (
+        <Alert tone="amber" icon={MapPin} className="mb-5">
+          Currently working on <b>{current.id}</b> ({current.taskType}, PIN <b>{current.area.pincode}</b>) – eligible for new work after it is completed.{" "}
+          <Link href={`/admin/assignments?q=${current.id}`}>Open</Link>
+        </Alert>
+      ) : blocked ? (
+        <Alert tone="red" icon={Ban} className="mb-5">This operator is blocked.</Alert>
+      ) : (
+        <Alert tone="green" icon={CircleCheck} className="mb-5">No active work – this operator is eligible for a new assignment.</Alert>
+      )}
+
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Card>
-          <CardHeader title="Operator details" action={<Badge tone={blocked ? "red" : "green"}>{blocked ? "Blocked" : "Active"}</Badge>} />
-          <CardBody className="flex flex-col gap-6 sm:flex-row">
-            {u.photo ? (
-              <div className="flex shrink-0 flex-col gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={u.photo} alt="" className="h-32 w-26 rounded-lg border border-line object-cover" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {u.signature && <img src={u.signature} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
-              </div>
-            ) : (
-              <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>
-            )}
-            <DetailGrid
-              className="flex-1"
-              items={[
-                ["Father's Name", u.fatherName], ["Mother's Name", u.motherName], ["Date of Birth", fmtDate(u.dob)],
-                ["Gender / Category", [u.gender, u.category].filter(Boolean).join(" / ")], ["Mobile", u.mobile], ["Email", u.email],
-                ["Religion", u.religion], ["Qualification", u.qualification], ["Aadhaar Number", maskAadhaar(u.aadhaar)], ["Aadhaar Card", u.aadhaarDocName], ["PAN", [u.pan, u.panDocName].filter(Boolean).join(" · ")],
-                [`Bank Proof${u.bankDocType ? ` (${u.bankDocType})` : ""}`, u.bankDocName], ["Photo / Signature", [u.photoName, u.signatureName].filter(Boolean).join(" · ")],
-                ["Post Office / Police Station", [u.postOffice, u.policeStation].filter(Boolean).join(" / ")],
-                ["Address", [u.address, u.tehsil, u.district, u.state, u.pincode].filter(Boolean).join(", ")],
-                ["Bank", u.bank?.bankName], ["Account Holder", u.bank?.holder], ["Account No.", maskAccount(u.bank?.account)], ["IFSC", u.bank?.ifsc],
-              ]}
-            />
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Assignments" />
-          <CardBody className="space-y-5">
-            {!asg.data?.length ? (
-              <p className="text-sm text-muted">No work assigned yet.</p>
-            ) : (
-              asg.data.map((a) => (
-                <div key={a.id}>
-                  <div className="flex justify-between gap-2">
-                    <b className="text-sm text-navy">{a.id} · {a.taskType}</b>
-                    {a.status === "completed" ? <Badge>Completed</Badge> : !a.seenAt ? <Badge tone="blue">New</Badge> : <Badge tone="green">Active</Badge>}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title="Operator details" action={<Badge tone={blocked ? "red" : "green"}>{blocked ? "Blocked" : "Active"}</Badge>} />
+            <CardBody className="flex flex-col gap-6 sm:flex-row">
+              <Photo u={u} />
+              {p ? (
+                <DetailGrid
+                  className="flex-1"
+                  items={[
+                    ["Father's Name", p.fatherName], ["Mother's Name", p.motherName], ["Date of Birth", fmtDate(p.dob)],
+                    ["Gender / Category", `${p.gender} / ${p.category}`], ["Religion", p.religion], ["Qualification", p.qualification],
+                    ["Mobile", [u.mobile, p.altMobile].filter(Boolean).join(" / ")], ["Email", u.email],
+                    ["Aadhaar Number", p.aadhaar], ["PAN", p.pan ?? "—"],
+                    ["Post Office / Police Station", `${p.postOffice} / ${p.policeStation}`],
+                    ["Address", [p.address, p.subDistrict, p.district, p.state, p.pincode].filter(Boolean).join(", ")],
+                  ]}
+                />
+              ) : (
+                <p className="text-sm text-muted">Profile details are not available.</p>
+              )}
+            </CardBody>
+          </Card>
+          {p && (
+            <Card>
+              <CardHeader title="Bank details" />
+              <CardBody>
+                <DetailGrid
+                  items={[
+                    ["Bank", p.bank.bankName], ["Account Holder", p.bank.accountHolder], ["Account No.", p.bank.account],
+                    ["IFSC", p.bank.ifsc], ["Proof", p.bank.proofType],
+                  ]}
+                />
+              </CardBody>
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title="Assignments" action={<span className="text-xs text-muted">{u.assignments.length} total</span>} />
+            <CardBody className="space-y-4">
+              {!u.assignments.length ? (
+                <p className="text-sm text-muted">No work assigned yet.</p>
+              ) : (
+                u.assignments.map((a) => (
+                  <div key={a.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
+                    <div className="flex justify-between gap-2">
+                      <b className="text-sm text-navy">{a.id}</b>
+                      <WorkStatusBadge a={a} />
+                    </div>
+                    <p className="text-sm">{a.taskType}</p>
+                    <p className="text-xs text-muted">{areaText(a.area)}</p>
+                    <p className="text-xs text-muted">
+                      Target {a.target} · {money(a.ratePerEntry)}/entry · deadline {fmtDate(a.deadline)}
+                    </p>
                   </div>
-                  <p className="mb-2 text-xs text-muted">{a.area.village}, {a.area.block}, {a.area.district}</p>
-                  <Progress value={(entries.data ?? []).filter((e) => e.assignmentId === a.id).length} max={a.target} />
-                </div>
-              ))
-            )}
-          </CardBody>
-        </Card>
+                ))
+              )}
+            </CardBody>
+          </Card>
+          <Card>
+            <CardHeader title="Documents" />
+            <ul className="divide-y divide-line">
+              {[...u.documents]
+                .sort((a, b) => DOC_ORDER.indexOf(a.kind) - DOC_ORDER.indexOf(b.kind))
+                .map((d) => {
+                  const Icon = d.mimeType.startsWith("image/") ? ImageIcon : FileText;
+                  return (
+                    <li key={d.id} className="flex items-center gap-3 px-5 py-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-success-soft text-success"><Icon className="size-[18px]" /></span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-navy">{DOC_LABEL[d.kind] ?? d.kind}</p>
+                        <p className="truncate text-xs text-muted">{d.fileName} · {(d.size / 1024).toFixed(0)} KB</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => openOperatorDocument(d.id).catch((e) => toast.error((e as Error).message))}>
+                        <ExternalLink /> View
+                      </Button>
+                    </li>
+                  );
+                })}
+              {!u.documents.length && <li className="px-5 py-3 text-sm text-muted">No documents.</li>}
+            </ul>
+          </Card>
+        </div>
       </div>
     </>
+  );
+}
+
+/** Photo + signature loaded with the admin token and shown from memory. */
+function Photo({ u }: { u: OperatorDetail }) {
+  const photo = u.documents.find((d) => d.kind === "photo");
+  const sign = u.documents.find((d) => d.kind === "signature");
+  const { data: urls } = useQuery({
+    queryKey: ["operator-photo", photo?.id, sign?.id],
+    enabled: !!photo,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const load = async (id?: string) => (id ? URL.createObjectURL(await (await authRaw("admin", `/documents/${id}`)).blob()) : undefined);
+      return { photo: await load(photo?.id), sign: await load(sign?.id) };
+    },
+  });
+  if (!urls?.photo) {
+    return <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>;
+  }
+  return (
+    <div className="flex shrink-0 flex-col gap-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={urls.photo} alt="Photo" className="h-32 w-26 rounded-lg border border-line object-cover" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {urls.sign && <img src={urls.sign} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
+    </div>
   );
 }
