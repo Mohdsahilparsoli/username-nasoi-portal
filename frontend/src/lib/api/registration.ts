@@ -39,7 +39,7 @@ export async function submitRegistration(payload: RegistrationPayload) {
 }
 
 export interface MyProfile {
-  id: string; role: Role; name: string; mobile: string | null; email: string | null; status: string; joinedAt: string;
+  id: string; role: Role; name: string; mobile: string | null; email: string | null; status: string; statusReason?: string | null; joinedAt: string;
   profile: null | {
     fatherName: string; motherName: string; dob: string; gender: string; category: string; religion: string;
     altMobile: string | null; qualification: string; country: string; state: string; district: string; subDistrict: string;

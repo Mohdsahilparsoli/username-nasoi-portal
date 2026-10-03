@@ -7,9 +7,10 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Alert, Badge, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
-import { useOperator, useSetOperatorStatus } from "@/features/work/hooks";
-import { ConfirmButton, WorkStatusBadge, areaText } from "@/features/work/ui";
+import { Alert, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
+import { useOperator } from "@/features/work/hooks";
+import { EmployeeStatusActions, EmployeeStatusBadge } from "@/features/work/employee-status";
+import { WorkStatusBadge, areaText } from "@/features/work/ui";
 import { authRaw } from "@/lib/api/auth";
 import { openOperatorDocument, type OperatorDetail } from "@/lib/api/work";
 import { fmtDate, fmtDateTime, initials, money } from "@/lib/utils";
@@ -28,19 +29,19 @@ const DOC_ORDER = Object.keys(DOC_LABEL);
 export default function OperatorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const q = useOperator(id);
-  const setStatus = useSetOperatorStatus();
 
   if (q.isLoading) return <Skeleton className="h-96" />;
   const u = q.data;
   if (!u) {
     return (
       <Alert tone="red" icon={TriangleAlert}>
-        {q.error instanceof Error ? q.error.message : "Operator not found."} <Link href="/admin/operators">Back to operators</Link>
+        {q.error instanceof Error ? q.error.message : "Employee not found."} <Link href="/admin/operators">Back to employees</Link>
       </Alert>
     );
   }
-  const blocked = u.status === "blocked";
-  const current = u.assignments.find((a) => a.status === "active");
+  const isVr = u.role === "verifier";
+  const current = isVr ? undefined : u.assignments.find((a) => a.status === "active");
+  const activeAreas = u.assignments.filter((a) => a.status === "active").length;
   const p = u.profile;
 
   return (
@@ -51,46 +52,28 @@ export default function OperatorDetailPage() {
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="light"><Link href="/admin/operators"><ArrowLeft /> Back</Link></Button>
-            <ConfirmButton
-              trigger={<Button variant={blocked ? "success" : "danger"}>{blocked ? <><CircleCheck /> Unblock</> : <><Ban /> Block</>}</Button>}
-              title={blocked ? `Unblock ${u.id}?` : `Block ${u.id}?`}
-              description={
-                blocked
-                  ? "The operator will be able to log in again and can receive new work."
-                  : "The operator will be logged out from all devices immediately and cannot log in until unblocked."
-              }
-              confirmLabel={blocked ? "Unblock" : "Block operator"}
-              variant={blocked ? "success" : "danger"}
-              pending={setStatus.isPending}
-              onConfirm={(close) =>
-                setStatus.mutate(
-                  { id: u.id, status: blocked ? "active" : "blocked" },
-                  {
-                    onSuccess: () => {
-                      toast.success(`${u.name} ${blocked ? "unblocked" : "blocked"}.`);
-                      close();
-                    },
-                    onError: (e) => toast.error(e.message),
-                  },
-                )
-              }
-            />
-            {u.eligible ? (
+            <EmployeeStatusActions u={u} size="md" />
+            {u.role === "deo" && (u.eligible ? (
               <Button asChild><Link href={`/admin/assign?deo=${u.id}`}><Target /> Assign work</Link></Button>
             ) : (
               <Button disabled><Target /> Assign work</Button>
-            )}
+            ))}
           </div>
         }
       />
 
-      {current ? (
+      {u.status !== "active" ? (
+        <Alert tone={u.status === "pending" ? "blue" : u.status === "inactive" ? "amber" : "red"} icon={Ban} className="mb-5">
+          {u.status === "pending" ? "New registration – waiting for your approval. Activate to allow work." : u.status === "inactive" ? "This employee is inactive and will not get new work." : "This employee is rejected and cannot log in."}
+          {u.statusReason && <> Reason: <b>{u.statusReason}</b></>}
+        </Alert>
+      ) : isVr ? (
+        <Alert tone="green" icon={CircleCheck} className="mb-5">Active verifier · verifying {activeAreas} active area(s).</Alert>
+      ) : current ? (
         <Alert tone="amber" icon={MapPin} className="mb-5">
           Currently working on <b>{current.id}</b> ({current.taskType}, PIN <b>{current.area.pincode}</b>) – eligible for new work after it is completed.{" "}
           <Link href={`/admin/assignments?q=${current.id}`}>Open</Link>
         </Alert>
-      ) : blocked ? (
-        <Alert tone="red" icon={Ban} className="mb-5">This operator is blocked.</Alert>
       ) : (
         <Alert tone="green" icon={CircleCheck} className="mb-5">No active work – this operator is eligible for a new assignment.</Alert>
       )}
@@ -98,7 +81,7 @@ export default function OperatorDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Operator details" action={<Badge tone={blocked ? "red" : "green"}>{blocked ? "Blocked" : "Active"}</Badge>} />
+            <CardHeader title={isVr ? "Verifier details" : "Operator details"} action={<EmployeeStatusBadge status={u.status} />} />
             <CardBody className="flex flex-col gap-6 sm:flex-row">
               <Photo u={u} />
               {p ? (
@@ -135,7 +118,7 @@ export default function OperatorDetailPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Assignments" action={<span className="text-xs text-muted">{u.assignments.length} total</span>} />
+            <CardHeader title={isVr ? "Areas to verify" : "Assignments"} action={<span className="text-xs text-muted">{u.assignments.length} total</span>} />
             <CardBody className="space-y-4">
               {!u.assignments.length ? (
                 <p className="text-sm text-muted">No work assigned yet.</p>

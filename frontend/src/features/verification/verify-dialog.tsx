@@ -9,6 +9,7 @@ import { Field, Select, Textarea } from "@/components/ui/form-controls";
 import { Alert, Skeleton } from "@/components/ui/misc";
 import { PersonCard } from "@/features/records/person-card";
 import { RecordDetail } from "@/features/records/record-form";
+import { placeText } from "@/features/work/ui";
 import { useEntryForms } from "@/features/work/hooks";
 import { AuthError } from "@/lib/api/auth";
 import { fmtDateTime } from "@/lib/utils";
@@ -106,7 +107,7 @@ export function VerifyDialog({ id, startReject, onClose }: { id: string | null; 
                   {e.status === "pending" && e.resubmitCount > 0 && <span className="block font-semibold">The operator corrected and resubmitted this entry.</span>}
                 </Alert>
               )}
-              <PersonCard title={`Entered by · ${e.assignment.village}, ${e.assignment.block}`} person={e.deo} />
+              <PersonCard title={["Entered by", placeText({ village: e.assignment.village, block: e.assignment.block })].filter(Boolean).join(" · ")} person={e.deo} />
               <RecordDetail def={forms.data?.[e.recordType]} entry={e} />
               {canAct && rejecting && (
                 <div className="space-y-2 rounded-xl border border-danger/30 bg-danger-soft/40 p-4">

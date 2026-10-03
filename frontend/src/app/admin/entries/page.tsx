@@ -12,7 +12,9 @@ import { Field, Input, Select } from "@/components/ui/form-controls";
 import { Alert, PageHeader, StatusBadge } from "@/components/ui/misc";
 import { useAdminEntries, useExportOptions } from "@/features/verification/hooks";
 import { codeText } from "@/features/records/record-form";
+import { EmailFileButton } from "@/features/files/email-dialog";
 import { downloadExport, type AdminEntry, type EntryFilter } from "@/lib/api/verifier";
+import { emailFile } from "@/lib/api/work";
 import { fmtDateTime, money } from "@/lib/utils";
 
 type Status = "all" | "pending" | "approved" | "rejected";
@@ -26,6 +28,22 @@ function ExportPanel() {
   const set = (k: keyof ExportFilter) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((p) => ({ ...p, [k]: e.target.value || undefined }));
   const active = Object.values(f).filter(Boolean).length;
   const o = opts.data;
+
+  const [mailFormat, setMailFormat] = useState<"xlsx" | "csv">("xlsx");
+  const filterFor = (all: boolean): EntryFilter => {
+    // District values are "State|District".
+    const [state, district] = (f.district ?? "").split("|");
+    return all ? {} : { ...f, state: f.district ? state : undefined, district: f.district ? district : undefined };
+  };
+  const formatPicker = (
+    <Field label="File type" htmlFor="mail-format">
+      <Select id="mail-format" value={mailFormat} onChange={(e) => setMailFormat(e.target.value as "xlsx" | "csv")}>
+        <option value="xlsx">Excel (.xlsx)</option>
+        <option value="csv">CSV (.csv)</option>
+      </Select>
+    </Field>
+  );
+  const mail = (all: boolean) => (to: string) => emailFile("admin", "/admin/entries/export/email", { to, format: mailFormat, ...filterFor(all) });
 
   const run = async (format: "xlsx" | "csv", all = false) => {
     const key = `${format}${all ? "-all" : ""}`;
@@ -55,6 +73,15 @@ function ExportPanel() {
           <span className="mr-auto text-sm font-semibold text-navy">Export all approved data (no filters)</span>
           <Button onClick={() => run("xlsx", true)} disabled={!!busy || !o?.totalApproved}><FileSpreadsheet /> {busy === "xlsx-all" ? "Preparing…" : "Export All – Excel"}</Button>
           <Button variant="light" onClick={() => run("csv", true)} disabled={!!busy || !o?.totalApproved}><FileText /> {busy === "csv-all" ? "Preparing…" : "Export All – CSV"}</Button>
+          <EmailFileButton
+            label="Send all on e-mail"
+            title="E-mail all approved entries"
+            description="The file is attached to the e-mail."
+            disabled={!o?.totalApproved}
+            send={mail(true)}
+          >
+            {formatPicker}
+          </EmailFileButton>
         </div>
 
         <p className="text-sm font-semibold text-navy">Or export by filter</p>
@@ -111,6 +138,9 @@ function ExportPanel() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => run("xlsx")} disabled={!!busy || !active}><Download /> {busy === "xlsx" ? "Preparing…" : "Export Excel"}</Button>
           <Button variant="light" onClick={() => run("csv")} disabled={!!busy || !active}><Download /> {busy === "csv" ? "Preparing…" : "Export CSV"}</Button>
+          <EmailFileButton title="E-mail filtered approved entries" description="The file (with your filters) is attached to the e-mail." disabled={!active} send={mail(false)}>
+            {formatPicker}
+          </EmailFileButton>
           {active > 0 && <Button variant="ghost" onClick={() => setF({})}><RotateCcw /> Clear filters ({active})</Button>}
           {!active && <span className="self-center text-xs text-muted">Choose at least one filter, or use Export All above.</span>}
         </div>

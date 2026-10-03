@@ -12,7 +12,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Input, Select } from "@/components/ui/form-controls";
 import { Alert, PageHeader, Progress } from "@/components/ui/misc";
 import { useChangeVerifier, useSetWorkStatus, useVerifiers, useWorkList } from "@/features/work/hooks";
-import { ConfirmButton, WorkStatusBadge } from "@/features/work/ui";
+import { ConfirmButton, WorkStatusBadge, placeText } from "@/features/work/ui";
 import type { WorkAssignment } from "@/lib/api/work";
 import { fmtDate, money } from "@/lib/utils";
 
@@ -145,7 +145,7 @@ function AssignmentsInner() {
         header: "Task / Area",
         accessorFn: (a) => a.taskType,
         cell: ({ row: { original: a } }) => (
-          <div>{a.taskType}<span className="mt-0.5 flex items-center gap-1 text-xs text-muted"><MapPin className="size-3" /> {a.area.village}, {a.area.block}, {a.area.district}</span></div>
+          <div>{a.taskType}<span className="mt-0.5 flex items-center gap-1 text-xs text-muted"><MapPin className="size-3" /> {placeText(a.area)}</span></div>
         ),
       },
       {

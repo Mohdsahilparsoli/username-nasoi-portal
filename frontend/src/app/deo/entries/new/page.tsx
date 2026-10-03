@@ -11,6 +11,7 @@ import { Alert, Badge, PageHeader, Progress, Skeleton } from "@/components/ui/mi
 import { PersonCard } from "@/features/records/person-card";
 import { AreaStrip, RecordFields, emptyValues, recordResolver, showServerError, toInput, type RecordValues } from "@/features/records/record-form";
 import { useCreateEntry, useEntryForms, useMyWork } from "@/features/work/hooks";
+import { placeText } from "@/features/work/ui";
 import type { FormDef, WorkAssignment } from "@/lib/api/work";
 import { fmtDate } from "@/lib/utils";
 
@@ -71,7 +72,7 @@ function EntryCard({ a, def }: { a: WorkAssignment; def: FormDef }) {
         <div className="space-y-3">
           <AreaStrip area={a.area} />
           <p className="flex items-center gap-1.5 text-xs text-muted">
-            <MapPin className="size-3.5" /> {a.area.village}, {a.area.block} · deadline {fmtDate(a.deadline)}
+            <MapPin className="size-3.5" /> {placeText({ village: a.area.village, block: a.area.block, district: a.area.district }) } · deadline {fmtDate(a.deadline)}
           </p>
           <div className="max-w-md"><Progress value={done} max={a.target} /></div>
         </div>

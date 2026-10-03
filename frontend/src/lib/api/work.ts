@@ -42,17 +42,23 @@ export interface WorkAssignment {
   progress?: { submitted: number; approved: number; rejected: number };
 }
 
+/** active: can work · pending: waiting for approval · inactive: no new work · rejected / blocked: cannot log in. */
+export type EmployeeStatus = "active" | "pending" | "inactive" | "rejected" | "blocked";
+export type EmployeeRole = "deo" | "verifier";
+
 export interface OperatorRow {
   id: string;
+  role: EmployeeRole;
+  statusReason: string | null;
   name: string;
   mobile: string | null;
   email: string | null;
-  status: "active" | "blocked";
+  status: EmployeeStatus;
   joinedAt: string;
   lastLoginAt: string | null;
   location: { district: string; state: string; pincode: string } | null;
   qualification: string | null;
-  assignments: { total: number; completed: number };
+  assignments: { total: number; completed: number; active: number };
   currentAssignment: { id: string; pincode: string; taskType: string; deadline: string } | null;
   eligible: boolean;
 }
@@ -68,10 +74,13 @@ export interface OperatorDocument {
 
 export interface OperatorDetail {
   id: string;
+  role: EmployeeRole;
+  statusReason: string | null;
+  statusChangedAt: string | null;
   name: string;
   mobile: string | null;
   email: string | null;
-  status: "active" | "blocked";
+  status: EmployeeStatus;
   joinedAt: string;
   lastLoginAt: string | null;
   profile: {
@@ -97,8 +106,6 @@ export interface NewAssignment {
   target: number;
   state: string;
   district: string;
-  block: string;
-  village: string;
   pincode: string;
   deadline: string;
   instructions?: string;
@@ -120,14 +127,14 @@ const qs = (p: Record<string, string | undefined>) => {
 };
 
 /* ---------- Super Admin ---------- */
-export const listOperators = (q?: string) =>
-  authRequest<{ operators: OperatorRow[] }>("admin", `/admin/operators${qs({ q })}`).then((r) => r.operators);
+export const listOperators = (q?: string, role?: EmployeeRole) =>
+  authRequest<{ operators: OperatorRow[] }>("admin", `/admin/operators${qs({ q, role })}`).then((r) => r.operators);
 
 export const getOperator = (id: string) =>
   authRequest<{ operator: OperatorDetail }>("admin", `/admin/operators/${encodeURIComponent(id)}`).then((r) => r.operator);
 
-export const setOperatorStatus = (id: string, status: "active" | "blocked") =>
-  authRequest<{ id: string; status: string }>("admin", `/admin/operators/${encodeURIComponent(id)}/status`, json("PATCH", { status }));
+export const setOperatorStatus = (id: string, status: "active" | "inactive" | "rejected", reason?: string) =>
+  authRequest<{ id: string; status: string }>("admin", `/admin/operators/${encodeURIComponent(id)}/status`, json("PATCH", { status, reason }));
 
 export const listWork = (f: { status?: string; deoId?: string; q?: string } = {}) =>
   authRequest<{ assignments: WorkAssignment[] }>("admin", `/admin/assignments${qs(f)}`).then((r) => r.assignments);
@@ -263,10 +270,93 @@ export async function uploadMyPhoto(role: Role, file: Blob) {
 
 /* ---------- Admin: verifiers ---------- */
 export interface VerifierRow extends PersonCard {
-  status: "active" | "blocked";
+  status: EmployeeStatus;
   activeAreas: number;
   pendingEntries: number;
 }
 export const listVerifiers = () => authRequest<{ verifiers: VerifierRow[] }>("admin", "/admin/verifiers").then((r) => r.verifiers);
 export const changeVerifier = (id: string, verifierId: string) =>
   authRequest<{ assignment: WorkAssignment; movedEntries: number }>("admin", `/admin/assignments/${encodeURIComponent(id)}/verifier`, json("PATCH", { verifierId }));
+
+/* ---------- Payouts & payments ---------- */
+export const PAYMENT_MODES = ["UPI", "NEFT", "IMPS", "RTGS", "Bank Transfer", "Cheque", "Cash"] as const;
+
+export interface PaymentRecord {
+  id: string;
+  userId: string;
+  user?: { id: string; name: string };
+  role: EmployeeRole;
+  amount: number;
+  transactionId: string;
+  payeeName: string;
+  mode: string;
+  paidOn: string;
+  entriesCount: number | null;
+  periodFrom: string | null;
+  periodTo: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PayoutRow {
+  id: string;
+  role: EmployeeRole;
+  name: string;
+  mobile: string | null;
+  email: string | null;
+  status: EmployeeStatus;
+  bank: { bankName: string; accountHolder: string; account: string; ifsc: string } | null;
+  workCount: number;
+  earned: number;
+  paid: number;
+  balance: number;
+  payments: number;
+  lastPaidOn: string | null;
+}
+
+export interface NewPayment {
+  userId: string;
+  amount: number;
+  transactionId: string;
+  payeeName?: string;
+  mode: string;
+  paidOn: string;
+  entriesCount?: number | string;
+  periodFrom?: string;
+  periodTo?: string;
+  notes?: string;
+}
+
+export const payouts = (role: EmployeeRole) =>
+  authRequest<{ rows: PayoutRow[]; total: { earned: number; paid: number; balance: number } }>("admin", `/admin/payouts?role=${role}`);
+export const listPayments = (role?: EmployeeRole) =>
+  authRequest<{ payments: PaymentRecord[] }>("admin", `/admin/payments${qs({ role })}`).then((r) => r.payments);
+export const recordPayment = (v: NewPayment) => authRequest<{ payment: PaymentRecord }>("admin", "/admin/payments", json("POST", v)).then((r) => r.payment);
+
+export interface MyPayments {
+  summary: { earned: number; paid: number; balance: number; payments: number };
+  payments: PaymentRecord[];
+}
+export const myPayments = (role: Role) => authRequest<MyPayments>(role, "/payments/me");
+
+/** Downloads a file from the API (Excel / CSV) and saves it in the browser. */
+export async function downloadFile(role: Role, path: string, fallbackName: string) {
+  const res = await authRaw(role, path);
+  const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  return name;
+}
+
+export interface EmailResult {
+  sent: boolean;
+  to: string;
+  filename: string;
+  count?: number;
+}
+/** POST a "send this file by e-mail" request. */
+export const emailFile = (role: Role, path: string, body: Record<string, unknown>) => authRequest<EmailResult>(role, path, json("POST", body));

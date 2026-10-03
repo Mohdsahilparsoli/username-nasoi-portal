@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState, PageHeader, Skeleton, StatCard } from "@/components/ui/misc";
 import { PersonCard } from "@/features/records/person-card";
+import { placeText } from "@/features/work/ui";
 import { codeText } from "@/features/records/record-form";
 import { useVerifierAreas, useVerifierEntries, useVerifierSummary } from "@/features/verification/hooks";
 import { VerifyDialog } from "@/features/verification/verify-dialog";
@@ -55,7 +56,7 @@ export default function VerifierDashboard() {
                   <div>
                     <b className="text-navy">{a.id}</b>
                     <p className="text-xs text-muted">{a.taskType} · {a.recordType === "college" ? "College" : "School"} entries</p>
-                    <p className="text-xs text-muted">{a.area.village}, {a.area.block}, {a.area.district} – PIN <b>{a.area.pincode}</b></p>
+                    <p className="text-xs text-muted">{placeText({ village: a.area.village, block: a.area.block, district: a.area.district })} – PIN <b>{a.area.pincode}</b></p>
                   </div>
                   <Badge tone="blue">{a.progress.submitted}/{a.target} entered · {a.progress.approved} approved</Badge>
                 </div>

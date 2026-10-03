@@ -12,8 +12,9 @@ const K = {
   notifications: (role: Role) => ["notifications", role] as const,
 };
 
-export function useOperators(q?: string) {
-  return useQuery({ queryKey: K.operators(q), queryFn: () => api.listOperators(q) });
+/** Employees (DEOs and verifiers); pass a role for only one kind. */
+export function useOperators(q?: string, role?: api.EmployeeRole) {
+  return useQuery({ queryKey: [...K.operators(q), role ?? "all"], queryFn: () => api.listOperators(q, role) });
 }
 
 export function useOperator(id: string) {
@@ -23,7 +24,7 @@ export function useOperator(id: string) {
 export function useSetOperatorStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string; status: "active" | "blocked" }) => api.setOperatorStatus(v.id, v.status),
+    mutationFn: (v: { id: string; status: "active" | "inactive" | "rejected"; reason?: string }) => api.setOperatorStatus(v.id, v.status, v.reason),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["work"] }),
   });
 }
@@ -142,4 +143,22 @@ export function useChangeVerifier() {
     mutationFn: (v: { id: string; verifierId: string }) => api.changeVerifier(v.id, v.verifierId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["work"] }),
   });
+}
+
+/* ---------- Payouts & payments ---------- */
+export function usePayouts(role: api.EmployeeRole) {
+  return useQuery({ queryKey: ["payouts", role], queryFn: () => api.payouts(role) });
+}
+
+export function usePayments(role?: api.EmployeeRole) {
+  return useQuery({ queryKey: ["payouts", "payments", role ?? "all"], queryFn: () => api.listPayments(role) });
+}
+
+export function useRecordPayment() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: api.recordPayment, onSuccess: () => qc.invalidateQueries({ queryKey: ["payouts"] }) });
+}
+
+export function useMyPayments(role: Role) {
+  return useQuery({ queryKey: ["my-payments", role], queryFn: () => api.myPayments(role) });
 }

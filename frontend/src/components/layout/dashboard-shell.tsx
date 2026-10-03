@@ -2,13 +2,15 @@
 
 import {
   CircleCheck, CirclePlus, CircleX, ClipboardList, FileText, Folder, LayoutDashboard, LogOut, MapPin, Menu,
-  Search, SlidersHorizontal, Target, User, Users, Wallet, type LucideIcon,
+  ReceiptIndianRupee, Search, SlidersHorizontal, Target, TriangleAlert, User, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
+import { Alert } from "@/components/ui/misc";
 import { Avatar } from "@/features/records/person-card";
+import { useMyProfile } from "@/features/users/hooks";
 import { NotificationBell } from "@/features/work/notification-bell";
 import { useVerifierSummary } from "@/features/verification/hooks";
 import { useMyWork } from "@/features/work/hooks";
@@ -37,6 +39,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/deo/entries", label: "My Entries", icon: ClipboardList },
     { href: "/deo/entries/new", label: "New Add Entry", icon: CirclePlus },
     { href: "/deo/earnings", label: "Earnings & History", icon: Wallet },
+    { href: "/deo/payments", label: "Payments", icon: ReceiptIndianRupee },
   ],
   verifier: [
     { href: "/verifier", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -44,11 +47,12 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/verifier/approved", label: "Approved", icon: CircleCheck },
     { href: "/verifier/rejected", label: "Rejected", icon: CircleX },
     { href: "/verifier/income", label: "Income", icon: Wallet },
+    { href: "/verifier/payments", label: "Payments", icon: ReceiptIndianRupee },
     { href: "/verifier/profile", label: "Profile", icon: User },
   ],
   admin: [
     { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-    { href: "/admin/operators", label: "Operators (DEO)", icon: Users },
+    { href: "/admin/operators", label: "Employees", icon: Users },
     { href: "/admin/assign", label: "Assign Work", icon: Target },
     { href: "/admin/assignments", label: "All Assignments", icon: Folder },
     { href: "/admin/entries", label: "All Entries", icon: ClipboardList },
@@ -177,7 +181,10 @@ export function DashboardShell({ role, children }: { role: Role; children: React
         </nav>
       </aside>
 
-      <main className="min-h-screen px-4 pb-10 pt-[88px] lg:ml-64 lg:px-7">{children}</main>
+      <main className="min-h-screen px-4 pb-10 pt-[88px] lg:ml-64 lg:px-7">
+        {role !== "admin" && <AccountStatusBanner />}
+        {children}
+      </main>
     </MeContext.Provider>
   );
 }
@@ -218,4 +225,18 @@ function useNavBadge(kind: NavItem["badge"], role: Role, _userId: string) {
   if (kind === "newAssignments") return work.data?.current && !work.data.current.seenAt ? 1 : 0;
   if (kind === "pending") return verify.data?.pending ?? 0;
   return 0;
+}
+
+/** Tells a DEO / verifier when their account is waiting for approval or inactive. */
+function AccountStatusBanner() {
+  const profile = useMyProfile();
+  const st = profile.data?.status;
+  if (st !== "pending" && st !== "inactive") return null;
+  return (
+    <Alert tone={st === "pending" ? "blue" : "amber"} icon={TriangleAlert} className="mb-5">
+      {st === "pending"
+        ? "Your account is waiting for approval by the NASOI admin. You will get work after your account is activated."
+        : `Your account is inactive${profile.data?.statusReason ? `: ${profile.data.statusReason}` : ""}. You will not get new work until the admin activates it again.`}
+    </Alert>
+  );
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState, PageHeader, Progress, Skeleton, StatCard, StatusBadge } from "@/components/ui/misc";
 import { PersonCard } from "@/features/records/person-card";
+import { placeText } from "@/features/work/ui";
 import { codeText } from "@/features/records/record-form";
 import { useMyEntries, useMySummary, useMyWork } from "@/features/work/hooks";
 import { fmtDate, fmtDateTime, money } from "@/lib/utils";
@@ -97,7 +98,7 @@ export default function DeoDashboard() {
                 </div>
                 <p className="mt-0.5 text-xs text-muted">{a.id} · PIN <b>{a.area.pincode}</b></p>
                 <p className="mb-3 mt-0.5 flex items-center gap-1 text-xs text-muted">
-                  <MapPin className="size-3.5" /> {[a.area.village, a.area.block, a.area.district, a.area.state].join(", ")}
+                  <MapPin className="size-3.5" /> {placeText(a.area)}
                 </p>
                 <Progress value={p?.submitted ?? 0} max={a.target} />
                 <p className="mt-2 text-xs text-muted">

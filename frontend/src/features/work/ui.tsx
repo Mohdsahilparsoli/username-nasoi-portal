@@ -12,7 +12,11 @@ export function WorkStatusBadge({ a }: { a: Pick<WorkAssignment, "status" | "see
   return a.seenAt ? <Badge tone="amber">In progress</Badge> : <Badge tone="blue">New (unseen)</Badge>;
 }
 
-export const areaText = (a: WorkAssignment["area"]) => `${a.village}, ${a.block}, ${a.district}, ${a.state} – ${a.pincode}`;
+/** "Village, Block, District" – village and block are optional (not asked when assigning any more). */
+export const placeText = (a: { village?: string | null; block?: string | null; district?: string; state?: string }) =>
+  [a.village, a.block, a.district, a.state].filter((x) => x && x.trim()).join(", ");
+
+export const areaText = (a: WorkAssignment["area"]) => `${placeText(a)} – ${a.pincode}`;
 
 /** A button that asks "are you sure?" in a dialog before running the action. */
 export function ConfirmButton({

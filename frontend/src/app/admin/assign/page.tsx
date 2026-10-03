@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Info, Send, TriangleAlert } from "lucide-react";
+import { Send, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
@@ -37,8 +37,6 @@ const schema = z.object({
   target: z.coerce.number({ error: "Enter the number of entries" }).int("Enter a whole number").min(1, "Target must be at least 1").max(100000, "Target is too large"),
   state: z.string().min(1, "Select state"),
   district: z.string().min(1, "Select district"),
-  block: z.string().trim().min(2, "Enter block / tehsil").max(60),
-  village: z.string().trim().min(2, "Enter village / ward").max(60),
   pincode: z.string().trim().regex(/^[1-9]\d{5}$/, "Enter a valid 6-digit PIN code"),
   ratePerEntry: z.coerce.number({ error: "Enter the DEO amount" }).int("Enter a whole number").min(1, "Amount must be at least ₹1").max(1000, "Amount is too high"),
   deadline: z.string().min(1, "Select a deadline").refine((d) => d >= todayIST(), "Deadline cannot be in the past"),
@@ -49,19 +47,19 @@ type FormOut = z.output<typeof schema>;
 
 const label = (u: OperatorRow) =>
   `${u.id} – ${u.name}${u.location ? ` (${u.location.district}, ${u.location.pincode})` : ""}` +
-  (u.status === "blocked" ? " · Blocked" : u.currentAssignment ? ` · Busy: ${u.currentAssignment.id}` : "");
+  (u.status !== "active" ? ` · ${u.status === "pending" ? "Pending approval" : u.status[0].toUpperCase() + u.status.slice(1)}` : u.currentAssignment ? ` · Busy: ${u.currentAssignment.id}` : "");
 
 function AssignInner() {
   const params = useSearchParams();
   const router = useRouter();
-  const deos = useOperators();
+  const deos = useOperators(undefined, "deo");
   const create = useCreateWork();
   const settings = useAppSettings();
   const verifiers = useVerifiers();
   const form = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(schema),
     defaultValues: {
-      deoId: "", taskType: "Data Entry Services", recordType: "school", verifierId: "", verifierRate: 2, target: 50, state: "", district: "", block: "", village: "", pincode: "",
+      deoId: "", taskType: "Data Entry Services", recordType: "school", verifierId: "", verifierRate: 2, target: 50, state: "", district: "", pincode: "",
       ratePerEntry: 10, deadline: in30Days(), instructions: "",
     },
   });
@@ -127,10 +125,6 @@ function AssignInner() {
   return (
     <>
       <PageHeader title="Assign Work" description="Assign a PIN code area to a Data Entry Operator and a Verifier." />
-      <Alert tone="blue" icon={Info} className="mb-5">
-        One operator gets <b>one assignment at a time</b> and one PIN code can be with <b>only one operator</b> at a time.
-        All entries of the area go to the verifier you choose. The amounts are visible only to you – the operator and the verifier see only their totals.
-      </Alert>
       {deos.data?.length === 0 ? (
         <Alert tone="amber" icon={TriangleAlert}>No Data Entry Operator has registered yet.</Alert>
       ) : (
@@ -177,7 +171,7 @@ function AssignInner() {
                 <option value="">{verifiers.isLoading ? "Loading verifiers…" : verifiers.data?.length ? "-- Select verifier --" : "No verifier has registered yet"}</option>
                 {verifiers.data?.map((v) => (
                   <option key={v.id} value={v.id} disabled={v.status !== "active"}>
-                    {v.id} – {v.name}{v.status !== "active" ? " · Blocked" : ` · ${v.activeAreas} active area(s), ${v.pendingEntries} pending`}
+                    {v.id} – {v.name}{v.status !== "active" ? ` · ${v.status === "pending" ? "Pending approval" : v.status}` : ` · ${v.activeAreas} active area(s), ${v.pendingEntries} pending`}
                   </option>
                 ))}
               </Select>
@@ -199,12 +193,6 @@ function AssignInner() {
               <Select id="district" aria-invalid={!!e.district} disabled={!state} {...register("district")}>
                 <DistrictOptions state={state} />
               </Select>
-            </Field>
-            <Field label="Block / Tehsil" htmlFor="block" required error={e.block?.message}>
-              <Input id="block" maxLength={60} aria-invalid={!!e.block} {...register("block")} />
-            </Field>
-            <Field label="Village / Ward" htmlFor="village" required error={e.village?.message}>
-              <Input id="village" maxLength={60} aria-invalid={!!e.village} {...register("village")} />
             </Field>
             <Field label="DEO amount per approved entry (₹)" htmlFor="ratePerEntry" required error={e.ratePerEntry?.message} hint="Paid to the operator">
               <Input id="ratePerEntry" type="number" min={1} inputMode="numeric" aria-invalid={!!e.ratePerEntry} {...register("ratePerEntry")} />
