@@ -48,3 +48,8 @@ export function useExportOptions() {
 export function useVerifierAreas() {
   return useQuery({ queryKey: ["verify", "areas"], queryFn: api.verifierAreas, refetchOnWindowFocus: true });
 }
+
+export function useSaveMailTemplate() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: api.saveMailTemplate, onSuccess: (s) => qc.setQueryData(["app-settings"], s) });
+}

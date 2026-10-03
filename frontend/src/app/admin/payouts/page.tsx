@@ -120,7 +120,7 @@ function PayoutsInner() {
             <EmailFileButton
               title={`E-mail ${ROLE_LABEL[role]} payouts`}
               description="Excel with every employee's earned / paid / balance and all payment receipts."
-              send={(to) => emailFile("admin", "/admin/payouts/export/email", { role, to })}
+              send={(m) => emailFile("admin", "/admin/payouts/export/email", { ...m, role })}
             />
           </div>
         }

@@ -14,7 +14,7 @@ import { useAdminEntries, useExportOptions } from "@/features/verification/hooks
 import { codeText } from "@/features/records/record-form";
 import { EmailFileButton } from "@/features/files/email-dialog";
 import { downloadExport, type AdminEntry, type EntryFilter } from "@/lib/api/verifier";
-import { emailFile } from "@/lib/api/work";
+import { emailFile, type MailRequest } from "@/lib/api/work";
 import { fmtDateTime, money } from "@/lib/utils";
 
 type Status = "all" | "pending" | "approved" | "rejected";
@@ -43,7 +43,7 @@ function ExportPanel() {
       </Select>
     </Field>
   );
-  const mail = (all: boolean) => (to: string) => emailFile("admin", "/admin/entries/export/email", { to, format: mailFormat, ...filterFor(all) });
+  const mail = (all: boolean) => (m: MailRequest) => emailFile("admin", "/admin/entries/export/email", { ...m, format: mailFormat, filters: filterFor(all) });
 
   const run = async (format: "xlsx" | "csv", all = false) => {
     const key = `${format}${all ? "-all" : ""}`;

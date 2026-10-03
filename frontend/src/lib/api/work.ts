@@ -354,9 +354,18 @@ export async function downloadFile(role: Role, path: string, fallbackName: strin
 
 export interface EmailResult {
   sent: boolean;
-  to: string;
+  to: string[];
+  cc: string[];
   filename: string;
+  subject: string;
   count?: number;
+}
+/** What the admin fills in the "Send on e-mail" dialog (addresses comma separated). */
+export interface MailRequest {
+  to: string;
+  cc: string;
+  subject: string;
+  message: string;
 }
 /** POST a "send this file by e-mail" request. */
 export const emailFile = (role: Role, path: string, body: Record<string, unknown>) => authRequest<EmailResult>(role, path, json("POST", body));

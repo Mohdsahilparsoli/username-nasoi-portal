@@ -33,7 +33,14 @@ export interface AppSettings {
   verifierRate: number;
   defaultDeoRate: number;
   payoutWindow: string;
+  /** Default text of e-mails sent from the admin panel ({report} {details} {file} {date}). */
+  mailTemplate?: MailTemplate;
   updatedAt?: string;
+}
+export interface MailTemplate {
+  subject: string;
+  message: string;
+  isDefault?: boolean;
 }
 
 const json = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) });
@@ -70,6 +77,10 @@ export const getSettings = () => authRequest<{ settings: AppSettings }>("admin",
 
 export const saveSettings = (v: AppSettings) =>
   authRequest<{ settings: AppSettings }>("admin", "/admin/settings", json("PATCH", v)).then((r) => r.settings);
+
+/** Save the default e-mail template, or `{ reset: true }` for the built-in one. */
+export const saveMailTemplate = (v: MailTemplate | { reset: true }) =>
+  authRequest<{ settings: AppSettings }>("admin", "/admin/settings/mail-template", json("PATCH", v)).then((r) => r.settings);
 
 /* ---------- Admin: all entries + export ---------- */
 export type EntryFilter = Partial<Record<"status" | "recordType" | "pincode" | "deoId" | "verifierId" | "assignmentId" | "taskType" | "state" | "district" | "from" | "to" | "q", string>>;

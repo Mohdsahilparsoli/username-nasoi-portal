@@ -1,16 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save, TriangleAlert } from "lucide-react";
+import { Mail, RotateCcw, Save, TriangleAlert } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/form-controls";
-import { Alert, PageHeader, Skeleton } from "@/components/ui/misc";
+import { Field, Input, Textarea } from "@/components/ui/form-controls";
+import { Alert, Badge, PageHeader, Skeleton } from "@/components/ui/misc";
+import { MAIL_PLACEHOLDERS } from "@/features/files/email-dialog";
 import { PasswordCard } from "@/features/users/profile-view";
-import { useAppSettings, useSaveSettings } from "@/features/verification/hooks";
+import { useAppSettings, useSaveMailTemplate, useSaveSettings } from "@/features/verification/hooks";
 import { fmtDateTime } from "@/lib/utils";
 
 const schema = z.object({
@@ -73,7 +74,63 @@ export default function SettingsPage() {
             </form>
           )}
         </Card>
+        <MailTemplateCard />
       </div>
     </>
+  );
+}
+
+const tplSchema = z.object({
+  subject: z.string().trim().min(3, "Enter the subject").max(200, "Subject is too long (max 200)"),
+  message: z.string().trim().min(10, "Enter the message").max(3000, "Message is too long (max 3000)"),
+});
+
+/** Default subject / message for every file sent on e-mail from the admin panel. */
+function MailTemplateCard() {
+  const settings = useAppSettings();
+  const save = useSaveMailTemplate();
+  const t = settings.data?.mailTemplate;
+  const form = useForm<z.input<typeof tplSchema>, unknown, z.output<typeof tplSchema>>({
+    resolver: zodResolver(tplSchema),
+    values: t ? { subject: t.subject, message: t.message } : undefined,
+  });
+  const e = form.formState.errors;
+  const onError = (err: Error) => toast.error(err.message);
+
+  return (
+    <Card>
+      <CardHeader title="E-mail template" action={t && (t.isDefault ? <Badge tone="blue">Built-in default</Badge> : <Badge tone="green">Custom</Badge>)} />
+      {!t ? (
+        <div className="p-5"><Skeleton className="h-56" /></div>
+      ) : (
+        <form noValidate className="space-y-5 p-5" onSubmit={form.handleSubmit((v) => save.mutate(v, { onSuccess: () => toast.success("E-mail template saved."), onError }))}>
+          <p className="text-sm text-muted">
+            Used by default for every file sent on e-mail (All Entries, Payouts). It can still be changed in the e-mail window before sending.
+          </p>
+          <Field label="Subject" htmlFor="tpl-subject" required error={e.subject?.message}>
+            <Input id="tpl-subject" maxLength={200} {...form.register("subject")} />
+          </Field>
+          <Field label="Message" htmlFor="tpl-message" required error={e.message?.message}>
+            <Textarea id="tpl-message" rows={11} maxLength={3000} {...form.register("message")} />
+          </Field>
+          <Alert tone="blue" icon={Mail}>
+            <span className="text-xs">
+              Filled in automatically: {MAIL_PLACEHOLDERS.map(([k, v], i) => <span key={k}>{i ? " · " : ""}<code className="font-semibold">{k}</code> = {v}</span>)}
+            </span>
+          </Alert>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={save.isPending}><Save /> {save.isPending ? "Saving…" : "Save template"}</Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={save.isPending || t.isDefault}
+              onClick={() => save.mutate({ reset: true }, { onSuccess: () => toast.success("Built-in template restored."), onError })}
+            >
+              <RotateCcw /> Restore default
+            </Button>
+          </div>
+        </form>
+      )}
+    </Card>
   );
 }
