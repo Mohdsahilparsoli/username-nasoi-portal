@@ -7,14 +7,29 @@ import type { Role } from "@/types";
 
 export type AssignmentStatus = "active" | "completed" | "cancelled";
 
+/** Basic card a DEO and the verifier of the same area see about each other. */
+export interface PersonCard {
+  id: string;
+  name: string;
+  mobile: string | null;
+  hasPhoto?: boolean;
+}
+
+export type RecordType = "school" | "college";
+
 export interface WorkAssignment {
   id: string;
   deoId: string;
-  deo?: { id: string; name: string; mobile: string | null };
+  deo?: PersonCard;
+  verifierId?: string | null;
+  /** Admin: { id, name, mobile }. DEO: the verifier's card (with photo flag). */
+  verifier?: PersonCard | null;
   taskType: string;
+  recordType: RecordType;
   target: number;
-  /** Only sent to the Super Admin – DEOs never see the per-entry rate. */
+  /** Only sent to the Super Admin – DEOs and verifiers never see amounts. */
   ratePerEntry?: number;
+  verifierRate?: number | null;
   area: { state: string; district: string; block: string; village: string; pincode: string };
   deadline: string;
   instructions: string | null;
@@ -73,8 +88,13 @@ export interface OperatorDetail {
 export interface NewAssignment {
   deoId: string;
   taskType: string;
-  target: number;
+  recordType: RecordType;
+  verifierId: string;
+  /** ₹ to the DEO per approved entry. */
   ratePerEntry: number;
+  /** ₹ to the verifier per verified entry. */
+  verifierRate: number;
+  target: number;
   state: string;
   district: string;
   block: string;
@@ -147,28 +167,18 @@ export const markNotificationsRead = (role: Role, v: { ids?: string[]; all?: boo
 /* ---------- DEO school entries ---------- */
 export type EntryStatus = "pending" | "approved" | "rejected";
 
-export interface SchoolData {
-  udiseCode: string;
-  schoolName: string;
-  educationalBlock: string;
-  ruralUrban: string;
-  cluster: string;
-  lgdBlock: string;
-  lgdPanchayat: string;
-  lgdVillage: string;
-  schoolCategory: string;
-  schoolManagement: string;
-  yearEstablished: number;
-  yearRecognitionPri: number | null;
-  schoolType: string;
-}
-
-export interface SchoolEntry {
+export interface RecordEntry {
   id: string;
   assignmentId: string;
   deoId: string;
+  recordType: RecordType;
+  /** UDISE code (school) / AISHE code (college). */
+  code: string;
+  /** School / college name. */
+  name: string;
   area: { state: string; district: string; pincode: string };
-  school: SchoolData;
+  /** All form fields, keyed by field key (see GET /entry-forms). */
+  data: Record<string, string | number>;
   status: EntryStatus;
   rejectReason: string | null;
   verifiedAt: string | null;
@@ -177,10 +187,40 @@ export interface SchoolEntry {
   updatedAt: string;
 }
 
-export type SchoolInput = Omit<SchoolData, "yearEstablished" | "yearRecognitionPri"> & {
-  yearEstablished: number | string;
-  yearRecognitionPri?: number | string | null;
-};
+/** Values sent when saving an entry (all form fields). */
+export type RecordInput = Record<string, string | number>;
+
+/* ---------- Form definitions (GET /entry-forms) ---------- */
+export interface FieldDef {
+  key: string;
+  label: string;
+  kind: "code" | "text" | "choice" | "year" | "number" | "phone" | "email" | "url";
+  section: string;
+  required?: boolean;
+  options?: string[];
+  strict?: boolean;
+  pattern?: string;
+  patternMessage?: string;
+  max?: number;
+  min?: number;
+  showIf?: { field: string; in: string[] };
+  notBefore?: string;
+  notAbove?: string;
+  hint?: string;
+  placeholder?: string;
+  wide?: boolean;
+}
+
+export interface FormDef {
+  type: RecordType;
+  label: string;
+  codeField: string;
+  nameField: string;
+  sections: string[];
+  fields: FieldDef[];
+}
+
+export const entryForms = (role: Role) => authRequest<{ forms: Record<RecordType, FormDef> }>(role, "/entry-forms").then((r) => r.forms);
 
 export interface Totals {
   total: number;
@@ -199,11 +239,34 @@ export interface MySummary {
 export const mySummary = () => authRequest<MySummary>("deo", "/me/summary");
 
 export const myEntries = (f: { status?: string; q?: string } = {}) =>
-  authRequest<{ entries: SchoolEntry[] }>("deo", `/me/entries${qs(f)}`).then((r) => r.entries);
+  authRequest<{ entries: RecordEntry[] }>("deo", `/me/entries${qs(f)}`).then((r) => r.entries);
 
-export const myEntry = (id: string) => authRequest<{ entry: SchoolEntry }>("deo", `/me/entries/${encodeURIComponent(id)}`).then((r) => r.entry);
+export const myEntry = (id: string) => authRequest<{ entry: RecordEntry }>("deo", `/me/entries/${encodeURIComponent(id)}`).then((r) => r.entry);
 
-export const createEntry = (v: SchoolInput) => authRequest<{ entry: SchoolEntry }>("deo", "/me/entries", json("POST", v)).then((r) => r.entry);
+export const createEntry = (v: RecordInput) => authRequest<{ entry: RecordEntry }>("deo", "/me/entries", json("POST", v)).then((r) => r.entry);
 
-export const updateEntry = (id: string, v: SchoolInput) =>
-  authRequest<{ entry: SchoolEntry }>("deo", `/me/entries/${encodeURIComponent(id)}`, json("PATCH", v)).then((r) => r.entry);
+export const updateEntry = (id: string, v: RecordInput) =>
+  authRequest<{ entry: RecordEntry }>("deo", `/me/entries/${encodeURIComponent(id)}`, json("PATCH", v)).then((r) => r.entry);
+
+/** Profile photo of a user (self, or the DEO / verifier of the same area) as an object URL. */
+export async function userPhotoUrl(role: Role, userId: string) {
+  const res = await authRaw(role, `/users/${encodeURIComponent(userId)}/photo`);
+  return URL.createObjectURL(await res.blob());
+}
+
+/** Replace my profile photo (JPG / PNG). */
+export async function uploadMyPhoto(role: Role, file: Blob) {
+  const fd = new FormData();
+  fd.append("file", file, "photo.jpg");
+  return authRequest<{ document: { id: string } }>(role, "/profile/me/photo", { method: "POST", body: fd });
+}
+
+/* ---------- Admin: verifiers ---------- */
+export interface VerifierRow extends PersonCard {
+  status: "active" | "blocked";
+  activeAreas: number;
+  pendingEntries: number;
+}
+export const listVerifiers = () => authRequest<{ verifiers: VerifierRow[] }>("admin", "/admin/verifiers").then((r) => r.verifiers);
+export const changeVerifier = (id: string, verifierId: string) =>
+  authRequest<{ assignment: WorkAssignment; movedEntries: number }>("admin", `/admin/assignments/${encodeURIComponent(id)}/verifier`, json("PATCH", { verifierId }));

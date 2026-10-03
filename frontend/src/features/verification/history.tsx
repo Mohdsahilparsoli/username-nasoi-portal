@@ -10,6 +10,7 @@ import { Alert, PageHeader, StatusBadge } from "@/components/ui/misc";
 import type { HistoryRow } from "@/lib/api/verifier";
 import { fmtDateTime } from "@/lib/utils";
 import { useVerifierHistory } from "./hooks";
+import { codeText } from "@/features/records/record-form";
 import { VerifyDialog } from "./verify-dialog";
 
 /** Entries this verifier approved or rejected (from the verification log). */
@@ -21,10 +22,10 @@ export function VerifierHistory({ decision }: { decision: "approved" | "rejected
     () => [
       { id: "entry", header: "Entry", accessorFn: (r) => r.entry.id, cell: ({ getValue }) => <b className="text-navy">{String(getValue())}</b> },
       {
-        id: "school",
-        header: "School",
-        accessorFn: (r) => r.entry.schoolName,
-        cell: ({ row: { original: r } }) => <div className="max-w-80">{r.entry.schoolName}<span className="block text-xs text-muted">UDISE {r.entry.udiseCode} · PIN {r.entry.pincode}</span></div>,
+        id: "record",
+        header: "School / College",
+        accessorFn: (r) => r.entry.name,
+        cell: ({ row: { original: r } }) => <div className="max-w-80">{r.entry.name}<span className="block text-xs text-muted">{codeText(r.entry)} · PIN {r.entry.pincode}</span></div>,
       },
       { id: "deo", header: "Operator", accessorFn: (r) => r.deo.name, cell: ({ row: { original: r } }) => <div>{r.deo.name}<span className="block text-xs text-muted">{r.deo.id}</span></div> },
       ...(decision === "rejected"

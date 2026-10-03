@@ -56,7 +56,6 @@ export function LoginForm() {
       <form className="space-y-4 p-6" onSubmit={form.handleSubmit((v) => login.mutate(v))} noValidate>
         <div>
           <h1 className="text-xl font-bold">Login to your account</h1>
-          <p className="mt-0.5 text-sm text-muted">Use your User ID, registered mobile number or email.</p>
         </div>
 
         {login.error && (
@@ -90,7 +89,7 @@ export function LoginForm() {
           <span className="h-px flex-1 bg-line" /> New user? <span className="h-px flex-1 bg-line" />
         </div>
         <Button asChild variant="outline" className="w-full">
-          <Link href="/register"><UserPlus /> Create New Registration</Link>
+          <Link href="/register"><UserPlus /> Create Registration</Link>
         </Button>
 
         {active.length > 0 && (

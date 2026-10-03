@@ -11,10 +11,50 @@ import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Input, Select } from "@/components/ui/form-controls";
 import { Alert, PageHeader, Progress } from "@/components/ui/misc";
-import { useSetWorkStatus, useWorkList } from "@/features/work/hooks";
+import { useChangeVerifier, useSetWorkStatus, useVerifiers, useWorkList } from "@/features/work/hooks";
 import { ConfirmButton, WorkStatusBadge } from "@/features/work/ui";
 import type { WorkAssignment } from "@/lib/api/work";
 import { fmtDate, money } from "@/lib/utils";
+
+/** Change the verifier of an active area (pending entries move to the new verifier). */
+function ChangeVerifier({ a }: { a: WorkAssignment }) {
+  const verifiers = useVerifiers();
+  const change = useChangeVerifier();
+  const [vr, setVr] = useState("");
+  return (
+    <ConfirmButton
+      trigger={<button type="button" className="text-xs font-semibold text-primary hover:underline">{a.verifierId ? "Change" : "Set verifier"}</button>}
+      title={`Verifier for ${a.id}`}
+      description={
+        <div className="space-y-3">
+          <p>Pending entries of this area will move to the new verifier. Both the operator and the verifier are notified.</p>
+          <Select value={vr} onChange={(e) => setVr(e.target.value)} aria-label="New verifier">
+            <option value="">-- Select verifier --</option>
+            {verifiers.data?.filter((v) => v.status === "active" && v.id !== a.verifierId).map((v) => (
+              <option key={v.id} value={v.id}>{v.id} – {v.name} · {v.activeAreas} area(s), {v.pendingEntries} pending</option>
+            ))}
+          </Select>
+        </div>
+      }
+      confirmLabel="Change verifier"
+      pending={change.isPending}
+      onConfirm={(close) => {
+        if (!vr) return toast.error("Select a verifier.");
+        change.mutate(
+          { id: a.id, verifierId: vr },
+          {
+            onSuccess: (r) => {
+              toast.success(`${a.id} now verified by ${vr}.`, { description: `${r.movedEntries} pending entr${r.movedEntries === 1 ? "y" : "ies"} moved.` });
+              setVr("");
+              close();
+            },
+            onError: (e) => toast.error(e.message),
+          },
+        );
+      }}
+    />
+  );
+}
 
 function Actions({ a }: { a: WorkAssignment }) {
   const set = useSetWorkStatus();
@@ -90,6 +130,17 @@ function AssignmentsInner() {
         ),
       },
       {
+        id: "vr",
+        header: "Verifier",
+        accessorFn: (a) => a.verifier?.name ?? "",
+        cell: ({ row: { original: a } }) => (
+          <div className="text-sm">
+            {a.verifier ? <>{a.verifier.name}<span className="block text-xs text-muted">{a.verifier.id}</span></> : <span className="text-xs text-muted">Automatic</span>}
+            {a.status === "active" && <ChangeVerifier a={a} />}
+          </div>
+        ),
+      },
+      {
         id: "task",
         header: "Task / Area",
         accessorFn: (a) => a.taskType,
@@ -108,7 +159,14 @@ function AssignmentsInner() {
           </div>
         ),
       },
-      { accessorKey: "ratePerEntry", header: "Rate", cell: ({ getValue }) => money(Number(getValue())) },
+      {
+        id: "amounts",
+        header: "Amount (DEO / VR)",
+        accessorFn: (a) => a.ratePerEntry ?? 0,
+        cell: ({ row: { original: a } }) => (
+          <span className="whitespace-nowrap text-xs">{money(a.ratePerEntry)} / {a.verifierRate == null ? "default" : money(a.verifierRate)}</span>
+        ),
+      },
       { accessorKey: "deadline", header: "Deadline", cell: ({ getValue }) => <span className="whitespace-nowrap text-xs">{fmtDate(String(getValue()))}</span> },
       { accessorKey: "status", header: "Status", cell: ({ row: { original: a } }) => <WorkStatusBadge a={a} /> },
       { id: "action", header: "", enableSorting: false, cell: ({ row: { original: a } }) => <Actions a={a} /> },

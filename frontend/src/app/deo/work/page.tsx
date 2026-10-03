@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, EmptyState, PageHeader, Progress, Skeleton } from "@/components/ui/misc";
 import { useMarkWorkSeen, useMyWork } from "@/features/work/hooks";
+import { PersonCard } from "@/features/records/person-card";
 import { WorkStatusBadge, areaText } from "@/features/work/ui";
 import { fmtDate } from "@/lib/utils";
 
@@ -44,7 +45,7 @@ export default function WorkStatusPage() {
           <dl className="grid gap-x-6 gap-y-3 p-5 text-sm sm:grid-cols-2">
             <Item icon={Hash} label="PIN code" value={<b className="text-base">{current.area.pincode}</b>} />
             <Item icon={MapPin} label="Area" value={areaText(current.area)} />
-            <Item icon={Target} label="Target" value={`${current.target} entries`} />
+            <Item icon={Target} label="Target" value={`${current.target} ${current.recordType === "college" ? "college" : "school"} entries`} />
             <Item icon={Calendar} label="Deadline" value={fmtDate(current.deadline)} />
           </dl>
           <div className="mx-5 mb-5 max-w-lg">
@@ -53,6 +54,9 @@ export default function WorkStatusPage() {
               {current.progress?.approved ?? 0} approved · {current.progress?.rejected ?? 0} rejected ·{" "}
               <Link href="/deo/entries/new" className="font-semibold text-primary hover:underline">Add entry →</Link>
             </p>
+          </div>
+          <div className="mx-5 mb-5 max-w-md">
+            <PersonCard title="Your entries are verified by" person={current.verifier} />
           </div>
           {current.instructions && (
             <div className="mx-5 mb-5 rounded-lg border border-line bg-canvas p-4 text-sm">

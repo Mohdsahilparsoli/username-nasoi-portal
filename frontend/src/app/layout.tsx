@@ -17,7 +17,7 @@ const poppins = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "NASOI – School Data Entry Portal",
+    default: "National Academic Services of India",
     template: "%s | NASOI",
   },
   description:

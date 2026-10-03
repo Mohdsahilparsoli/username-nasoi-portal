@@ -6,26 +6,41 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field, Select, Textarea } from "@/components/ui/form-controls";
-import { Alert, DetailGrid, Skeleton } from "@/components/ui/misc";
-import { SchoolEntryDetail } from "@/features/school-entries/school-form";
+import { Alert, Skeleton } from "@/components/ui/misc";
+import { PersonCard } from "@/features/records/person-card";
+import { RecordDetail } from "@/features/records/record-form";
+import { useEntryForms } from "@/features/work/hooks";
 import { AuthError } from "@/lib/api/auth";
 import { fmtDateTime } from "@/lib/utils";
 import { useDecide, useVerifierEntry } from "./hooks";
 
-export const SCHOOL_REJECT_REASONS = [
-  "UDISE code does not match the school.",
-  "School name spelling does not match the record.",
-  "Educational block / cluster is incorrect.",
-  "LGD block, panchayat or village is incorrect.",
-  "School category or management is incorrect.",
-  "Year of establishment / recognition is incorrect.",
-  "School type is incorrect.",
-  "School is outside the assigned PIN code area.",
-];
+const REJECT_REASONS = {
+  school: [
+    "UDISE code does not match the school.",
+    "School name spelling does not match the record.",
+    "Educational block / cluster is incorrect.",
+    "LGD / Urban local body / ward details are incorrect.",
+    "School category or management is incorrect.",
+    "Class range, medium or pre-primary details are incorrect.",
+    "Year of establishment / recognition is incorrect.",
+    "Building or facility details are incorrect.",
+    "School is outside the assigned PIN code area.",
+  ],
+  college: [
+    "AISHE code does not match the college.",
+    "College name spelling does not match the record.",
+    "Affiliating university is incorrect.",
+    "College type or management is incorrect.",
+    "Address / block details are incorrect.",
+    "Course or accreditation details are incorrect.",
+    "College is outside the assigned PIN code area.",
+  ],
+} as const;
 
 /** Opens an entry; when it is pending (and assigned to me) it can be approved or rejected. */
 export function VerifyDialog({ id, startReject, onClose }: { id: string | null; startReject?: boolean; onClose: () => void }) {
   const q = useVerifierEntry(id);
+  const forms = useEntryForms("verifier");
   const decide = useDecide();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
@@ -91,14 +106,14 @@ export function VerifyDialog({ id, startReject, onClose }: { id: string | null; 
                   {e.status === "pending" && e.resubmitCount > 0 && <span className="block font-semibold">The operator corrected and resubmitted this entry.</span>}
                 </Alert>
               )}
-              <DetailGrid items={[["Operator", `${e.deo.name} (${e.deo.id})`], ["Work area", `${e.assignment.village}, ${e.assignment.block}`]]} />
-              <SchoolEntryDetail entry={e} />
+              <PersonCard title={`Entered by · ${e.assignment.village}, ${e.assignment.block}`} person={e.deo} />
+              <RecordDetail def={forms.data?.[e.recordType]} entry={e} />
               {canAct && rejecting && (
                 <div className="space-y-2 rounded-xl border border-danger/30 bg-danger-soft/40 p-4">
                   <Field label="Reason for rejection (the operator will see this)" htmlFor="reason" required error={error}>
                     <Select value="" onChange={(ev) => { if (ev.target.value) { setReason(ev.target.value); setError(""); } }} aria-label="Common reasons">
                       <option value="">-- Pick a common reason --</option>
-                      {SCHOOL_REJECT_REASONS.map((r) => <option key={r}>{r}</option>)}
+                      {REJECT_REASONS[e.recordType].map((r) => <option key={r}>{r}</option>)}
                     </Select>
                     <Textarea id="reason" autoFocus maxLength={300} value={reason} onChange={(ev) => { setReason(ev.target.value); setError(""); }} placeholder="Write what is wrong so the operator can correct it" />
                   </Field>

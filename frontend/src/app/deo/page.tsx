@@ -6,6 +6,8 @@ import { useMe } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState, PageHeader, Progress, Skeleton, StatCard, StatusBadge } from "@/components/ui/misc";
+import { PersonCard } from "@/features/records/person-card";
+import { codeText } from "@/features/records/record-form";
 import { useMyEntries, useMySummary, useMyWork } from "@/features/work/hooks";
 import { fmtDate, fmtDateTime, money } from "@/lib/utils";
 
@@ -63,13 +65,13 @@ export default function DeoDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-muted">
-                  <tr><th className="px-4 py-3">Entry ID</th><th className="px-4 py-3">School</th><th className="px-4 py-3">Submitted</th><th className="px-4 py-3">Status</th></tr>
+                  <tr><th className="px-4 py-3">Entry ID</th><th className="px-4 py-3">School / College</th><th className="px-4 py-3">Submitted</th><th className="px-4 py-3">Status</th></tr>
                 </thead>
                 <tbody>
                   {entries.data.slice(0, 6).map((e) => (
                     <tr key={e.id} className="border-t border-line">
                       <td className="px-4 py-3"><Link href={`/deo/entries/${e.id}`} className="font-medium text-primary hover:underline">{e.id}</Link></td>
-                      <td className="px-4 py-3">{e.school.schoolName}<span className="block text-xs text-muted">UDISE {e.school.udiseCode}</span></td>
+                      <td className="px-4 py-3">{e.name}<span className="block text-xs text-muted">{codeText(e)}</span></td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">{fmtDateTime(e.submittedAt)}</td>
                       <td className="px-4 py-3"><StatusBadge status={e.status} /></td>
                     </tr>
@@ -101,6 +103,7 @@ export default function DeoDashboard() {
                 <p className="mt-2 text-xs text-muted">
                   {p?.approved ?? 0} approved · {p?.pending ?? 0} pending · {p?.rejected ?? 0} rejected · deadline {fmtDate(a.deadline)}
                 </p>
+                <PersonCard title="Your verifier" person={a.verifier} className="mt-4" />
               </div>
             )}
           </div>

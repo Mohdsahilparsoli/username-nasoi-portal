@@ -5,9 +5,8 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
       <div className="px-6 pt-7 text-center">
-        <Image src="/brand/logo.png" alt="NASOI" width={92} height={92} className="mx-auto size-[88px]" priority />
-        <p className="mt-2 font-semibold text-primary">National Academic Services of India</p>
-        <p className="text-xs text-muted">School Data Entry Portal</p>
+        <Image src="/brand/logo.png" alt="NASOI" width={112} height={112} unoptimized className="mx-auto size-24" priority />
+        <p className="mt-2 text-lg font-bold text-primary">National Academic Services of India</p>
       </div>
       <div className="tricolor mt-5" />
       {children}

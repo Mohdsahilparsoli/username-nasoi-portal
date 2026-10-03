@@ -10,6 +10,7 @@ import { DataTable, FilterTabs } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/form-controls";
 import { Alert, Badge, PageHeader, StatusBadge } from "@/components/ui/misc";
 import { useVerifierEntries, useVerifierSummary } from "@/features/verification/hooks";
+import { codeText } from "@/features/records/record-form";
 import { VerifyDialog } from "@/features/verification/verify-dialog";
 import type { VerifierEntry } from "@/lib/api/verifier";
 import { fmtDateTime } from "@/lib/utils";
@@ -30,7 +31,7 @@ function VerifyInner() {
   const rows = useMemo(
     () =>
       (list.data ?? []).filter(
-        (e) => !dq || [e.id, e.school.udiseCode, e.school.schoolName, e.deo.id, e.deo.name, e.area.pincode].some((v) => v.toLowerCase().includes(dq)),
+        (e) => !dq || [e.id, e.code, e.name, e.deo.id, e.deo.name, e.area.pincode].some((v) => v.toLowerCase().includes(dq)),
       ),
     [list.data, dq],
   );
@@ -45,11 +46,11 @@ function VerifyInner() {
         ),
       },
       {
-        id: "school",
-        header: "School",
-        accessorFn: (e) => e.school.schoolName,
+        id: "record",
+        header: "School / College",
+        accessorFn: (e) => e.name,
         cell: ({ row: { original: e } }) => (
-          <div className="max-w-80">{e.school.schoolName}<span className="block text-xs text-muted">UDISE {e.school.udiseCode} · {e.school.lgdVillage}</span></div>
+          <div className="max-w-80">{e.name}<span className="block text-xs text-muted">{codeText(e)}</span></div>
         ),
       },
       { id: "pin", header: "PIN", accessorFn: (e) => e.area.pincode, cell: ({ getValue }) => <span className="text-xs">{String(getValue())}</span> },
@@ -98,7 +99,7 @@ function VerifyInner() {
           />
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ID / UDISE / school / operator" className="pl-9" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ID / code / name / operator" className="pl-9" />
           </div>
         </div>
         <DataTable

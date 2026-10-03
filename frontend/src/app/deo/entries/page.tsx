@@ -11,7 +11,8 @@ import { DataTable, FilterTabs } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/form-controls";
 import { Alert, PageHeader, StatusBadge } from "@/components/ui/misc";
 import { useMyEntries, useMyWork } from "@/features/work/hooks";
-import type { EntryStatus, SchoolEntry } from "@/lib/api/work";
+import { codeText } from "@/features/records/record-form";
+import type { EntryStatus, RecordEntry } from "@/lib/api/work";
 import { fmtDateTime } from "@/lib/utils";
 
 type Filter = "all" | EntryStatus;
@@ -40,23 +41,23 @@ function EntriesInner() {
       all.filter(
         (e) =>
           (filter === "all" || e.status === filter) &&
-          (!dq || [e.id, e.school.udiseCode, e.school.schoolName, e.school.lgdVillage].some((v) => v.toLowerCase().includes(dq))),
+          (!dq || [e.id, e.code, e.name].some((v) => v.toLowerCase().includes(dq))),
       ),
     [all, filter, dq],
   );
   const count = (s: EntryStatus) => all.filter((e) => e.status === s).length;
 
-  const columns = useMemo<ColumnDef<SchoolEntry, unknown>[]>(
+  const columns = useMemo<ColumnDef<RecordEntry, unknown>[]>(
     () => [
       { accessorKey: "id", header: "Entry ID", cell: ({ row }) => <Link href={`/deo/entries/${row.original.id}`} className="font-semibold text-primary hover:underline">{row.original.id}</Link> },
       {
-        id: "school",
-        header: "School",
-        accessorFn: (e) => e.school.schoolName,
+        id: "record",
+        header: "School / College",
+        accessorFn: (e) => e.name,
         cell: ({ row: { original: e } }) => (
           <div className="max-w-80">
-            {e.school.schoolName}
-            <span className="block text-xs text-muted">UDISE {e.school.udiseCode} · {e.school.lgdVillage}</span>
+            {e.name}
+            <span className="block text-xs text-muted">{codeText(e)}</span>
             {e.status === "rejected" && <span className="mt-0.5 block text-xs text-danger">Reason: {e.rejectReason || "—"}</span>}
           </div>
         ),
@@ -90,7 +91,7 @@ function EntriesInner() {
     <>
       <PageHeader
         title="My Entries"
-        description="Every school you entered and its verification status."
+        description="Every entry you made and its verification status."
         action={<Button asChild><Link href="/deo/entries/new"><CirclePlus /> New Entry</Link></Button>}
       />
       {entries.isError && <Alert tone="red" icon={TriangleAlert} className="mb-4">Could not load your entries. Please refresh the page.</Alert>}
@@ -108,7 +109,7 @@ function EntriesInner() {
           />
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-            <Input placeholder="Search ID / UDISE / school / village" value={q} className="pl-9" onChange={(e) => setQ(e.target.value)} />
+            <Input placeholder="Search ID / code / name" value={q} className="pl-9" onChange={(e) => setQ(e.target.value)} />
           </div>
         </div>
         <DataTable

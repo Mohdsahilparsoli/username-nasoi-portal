@@ -14,10 +14,10 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
 import { DistrictOptions, StateOptions } from "@/components/ui/location-options";
 import { Alert, PageHeader, Skeleton } from "@/components/ui/misc";
 import { useAppSettings } from "@/features/verification/hooks";
-import { useCreateWork, useOperators } from "@/features/work/hooks";
+import { useCreateWork, useOperators, useVerifiers } from "@/features/work/hooks";
 import { AuthError } from "@/lib/api/auth";
 import type { OperatorRow } from "@/lib/api/work";
-import { TASK_TYPES } from "@/lib/constants";
+import { ACTIVE_TASK_TYPES, TASK_TYPES } from "@/lib/constants";
 
 function todayIST() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
@@ -31,13 +31,16 @@ function in30Days() {
 const schema = z.object({
   deoId: z.string().min(1, "Select an operator"),
   taskType: z.string().min(1, "Select the service"),
+  recordType: z.enum(["school", "college"], { error: "Choose School or College" }),
+  verifierId: z.string().min(1, "Select a Verifier for this area"),
+  verifierRate: z.coerce.number({ error: "Enter the verifier amount" }).int("Enter a whole number").min(0, "Amount cannot be negative").max(1000, "Amount is too high"),
   target: z.coerce.number({ error: "Enter the number of entries" }).int("Enter a whole number").min(1, "Target must be at least 1").max(100000, "Target is too large"),
   state: z.string().min(1, "Select state"),
   district: z.string().min(1, "Select district"),
   block: z.string().trim().min(2, "Enter block / tehsil").max(60),
   village: z.string().trim().min(2, "Enter village / ward").max(60),
   pincode: z.string().trim().regex(/^[1-9]\d{5}$/, "Enter a valid 6-digit PIN code"),
-  ratePerEntry: z.coerce.number({ error: "Enter the rate" }).int("Enter a whole number").min(1, "Rate must be at least ₹1").max(1000, "Rate is too high"),
+  ratePerEntry: z.coerce.number({ error: "Enter the DEO amount" }).int("Enter a whole number").min(1, "Amount must be at least ₹1").max(1000, "Amount is too high"),
   deadline: z.string().min(1, "Select a deadline").refine((d) => d >= todayIST(), "Deadline cannot be in the past"),
   instructions: z.string().trim().max(1000, "Keep instructions under 1000 characters").optional(),
 });
@@ -54,10 +57,11 @@ function AssignInner() {
   const deos = useOperators();
   const create = useCreateWork();
   const settings = useAppSettings();
+  const verifiers = useVerifiers();
   const form = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(schema),
     defaultValues: {
-      deoId: "", taskType: "", target: 50, state: "", district: "", block: "", village: "", pincode: "",
+      deoId: "", taskType: "Data Entry Services", recordType: "school", verifierId: "", verifierRate: 2, target: 50, state: "", district: "", block: "", village: "", pincode: "",
       ratePerEntry: 10, deadline: in30Days(), instructions: "",
     },
   });
@@ -78,6 +82,7 @@ function AssignInner() {
   // Default rate from Settings (admin can still change it for this work).
   useEffect(() => {
     if (settings.data && !form.formState.dirtyFields.ratePerEntry) setValue("ratePerEntry", settings.data.defaultDeoRate);
+    if (settings.data && !form.formState.dirtyFields.verifierRate) setValue("verifierRate", settings.data.verifierRate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.data]);
 
@@ -96,8 +101,8 @@ function AssignInner() {
       { ...v, instructions: v.instructions || undefined },
       {
         onSuccess: ({ assignment: a, emailed }) => {
-          toast.success(`${a.id} assigned to ${a.deoId} for PIN ${a.area.pincode}.`, {
-            description: emailed ? "The operator has been notified on the portal and by e-mail." : "The operator has been notified on the portal.",
+          toast.success(`${a.id} assigned to ${a.deoId} (verifier ${a.verifierId}) for PIN ${a.area.pincode}.`, {
+            description: emailed ? "The operator and the verifier have been notified on the portal and by e-mail." : "The operator and the verifier have been notified on the portal.",
           });
           router.push("/admin/assignments");
         },
@@ -121,10 +126,10 @@ function AssignInner() {
 
   return (
     <>
-      <PageHeader title="Assign Work" description="Assign a PIN code area and a NASOI service to a Data Entry Operator." />
+      <PageHeader title="Assign Work" description="Assign a PIN code area to a Data Entry Operator and a Verifier." />
       <Alert tone="blue" icon={Info} className="mb-5">
         One operator gets <b>one assignment at a time</b> and one PIN code can be with <b>only one operator</b> at a time.
-        An operator becomes eligible for new work after the current one is marked completed.
+        All entries of the area go to the verifier you choose. The amounts are visible only to you – the operator and the verifier see only their totals.
       </Alert>
       {deos.data?.length === 0 ? (
         <Alert tone="amber" icon={TriangleAlert}>No Data Entry Operator has registered yet.</Alert>
@@ -152,8 +157,29 @@ function AssignInner() {
             )}
             <Field label="Service" htmlFor="taskType" required error={e.taskType?.message}>
               <Select id="taskType" aria-invalid={!!e.taskType} {...register("taskType")}>
-                <option value="">-- Select --</option>
-                {TASK_TYPES.map((t) => <option key={t}>{t}</option>)}
+                {TASK_TYPES.map((t) => (
+                  <option key={t} value={t} disabled={!ACTIVE_TASK_TYPES.includes(t)}>{t}{ACTIVE_TASK_TYPES.includes(t) ? "" : " (Coming Soon)"}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Data entry for" htmlFor="recordType" required error={e.recordType?.message} hint="Decides the form the operator fills">
+              <div id="recordType" role="radiogroup" className="grid grid-cols-2 gap-2">
+                {(["school", "college"] as const).map((t) => (
+                  <label key={t} className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:checked]:font-semibold has-[:checked]:text-primary">
+                    <input type="radio" value={t} className="accent-primary" {...register("recordType")} />
+                    {t === "school" ? "School" : "College"}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field className="sm:col-span-2" label="Verifier for this area" htmlFor="verifierId" required error={e.verifierId?.message}>
+              <Select id="verifierId" aria-invalid={!!e.verifierId} disabled={verifiers.isLoading} {...register("verifierId")}>
+                <option value="">{verifiers.isLoading ? "Loading verifiers…" : verifiers.data?.length ? "-- Select verifier --" : "No verifier has registered yet"}</option>
+                {verifiers.data?.map((v) => (
+                  <option key={v.id} value={v.id} disabled={v.status !== "active"}>
+                    {v.id} – {v.name}{v.status !== "active" ? " · Blocked" : ` · ${v.activeAreas} active area(s), ${v.pendingEntries} pending`}
+                  </option>
+                ))}
               </Select>
             </Field>
             <Field label="Target (no. of entries)" htmlFor="target" required error={e.target?.message}>
@@ -180,8 +206,11 @@ function AssignInner() {
             <Field label="Village / Ward" htmlFor="village" required error={e.village?.message}>
               <Input id="village" maxLength={60} aria-invalid={!!e.village} {...register("village")} />
             </Field>
-            <Field label="Rate per approved entry (₹)" htmlFor="ratePerEntry" required error={e.ratePerEntry?.message}>
+            <Field label="DEO amount per approved entry (₹)" htmlFor="ratePerEntry" required error={e.ratePerEntry?.message} hint="Paid to the operator">
               <Input id="ratePerEntry" type="number" min={1} inputMode="numeric" aria-invalid={!!e.ratePerEntry} {...register("ratePerEntry")} />
+            </Field>
+            <Field label="Verifier amount per verified entry (₹)" htmlFor="verifierRate" required error={e.verifierRate?.message} hint="Paid to the verifier for each approve / reject">
+              <Input id="verifierRate" type="number" min={0} inputMode="numeric" aria-invalid={!!e.verifierRate} {...register("verifierRate")} />
             </Field>
             <Field label="Deadline" htmlFor="deadline" required error={e.deadline?.message}>
               <Input id="deadline" type="date" min={todayIST()} aria-invalid={!!e.deadline} {...register("deadline")} />

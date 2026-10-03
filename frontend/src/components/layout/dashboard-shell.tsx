@@ -8,12 +8,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
+import { Avatar } from "@/features/records/person-card";
 import { NotificationBell } from "@/features/work/notification-bell";
 import { useVerifierSummary } from "@/features/verification/hooks";
 import { useMyWork } from "@/features/work/hooks";
 import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useSessionStore, type SessionInfo } from "@/stores/session-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useSessionHydrated } from "@/stores/use-session-hydrated";
@@ -131,9 +132,10 @@ export function DashboardShell({ role, children }: { role: Role; children: React
           <Menu className="size-5" />
         </button>
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/brand/logo.png" alt="NASOI" width={44} height={44} className="size-10 sm:size-11" />
+          <Image src="/brand/logo.png" alt="NASOI" width={48} height={48} unoptimized className="size-10 sm:size-12" />
           <span className="leading-tight">
-            <strong className="block text-primary">NASOI</strong>
+            <strong className="hidden text-primary sm:block">National Academic Services of India</strong>
+            <strong className="block text-primary sm:hidden">NASOI</strong>
             <small className="hidden text-[11px] text-muted sm:block">{ROLE_META[role].label} Panel</small>
           </span>
         </Link>
@@ -144,7 +146,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
             <b className="block text-sm text-navy">{session.name}</b>
             <small className="text-xs text-muted">{session.id}</small>
           </div>
-          <span className="grid size-9 place-items-center rounded-full bg-primary-soft text-sm font-bold text-primary">{initials(session.name)}</span>
+          <Avatar person={{ id: session.id, name: session.name }} size="sm" />
           <button type="button" onClick={logout} className="hidden items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-navy hover:bg-canvas sm:inline-flex">
             <LogOut className="size-4" /> Logout
           </button>

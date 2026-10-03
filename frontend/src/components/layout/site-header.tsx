@@ -30,7 +30,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 bg-white">
-      <div className="mx-auto flex h-[70px] max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between gap-4 px-4">
         <Brand />
         <button
           type="button"
@@ -61,7 +61,7 @@ export function SiteHeader() {
           ))}
           <Button asChild size="sm" className="mt-2 md:mt-0 md:ml-2">
             <Link href="/login" onClick={() => setOpen(false)}>
-              <LogIn /> Login / New Registration
+              <LogIn /> Login / Registration
             </Link>
           </Button>
         </nav>

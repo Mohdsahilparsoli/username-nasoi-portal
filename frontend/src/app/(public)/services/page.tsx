@@ -1,23 +1,25 @@
-import { Award, ClipboardList, GraduationCap, HandHeart, IdCard } from "lucide-react";
+import { ArrowRight, Award, ClipboardList, GraduationCap, HandHeart, IdCard } from "lucide-react";
+import Link from "next/link";
 import { PageBanner } from "@/components/layout/page-banner";
 import { Badge } from "@/components/ui/misc";
 
 export const metadata = { title: "Services" };
 
+/** Only Data Entry Services is live; the rest are shown as "Coming Soon". */
 const SERVICES = [
-  { icon: IdCard, t: "Student UHID Card Service", d: "Collection and entry of student details for the Student UHID card." },
-  { icon: Award, t: "National Scholarship Eligibility Examination Test (NSEET)", d: "Student registration and record work for the NSEET scholarship eligibility test." },
-  { icon: ClipboardList, t: "Data Entry Services", d: "Accurate digitisation of school and student records, entered area by area." },
-  { icon: HandHeart, t: "Students Education Support Services", d: "Support work for students' education programmes and their records." },
-  { icon: GraduationCap, t: "Academic Management Services", d: "Record keeping and data management for schools and academic institutions." },
+  { icon: ClipboardList, t: "Data Entry Services", live: true },
+  { icon: IdCard, t: "Student UHID Card Service", live: false },
+  { icon: Award, t: "National Scholarship Eligibility Examination Test (NSEET)", live: false },
+  { icon: HandHeart, t: "Students Education Support Services", live: false },
+  { icon: GraduationCap, t: "Academic Management Services", live: false },
 ];
 
 const FLOW: [string, string, string, React.ReactNode][] = [
-  ["1. Assignment", "Super Admin", "Assigns a PIN code area, service, target and rate to a DEO", <Badge key="a" tone="blue">New</Badge>],
+  ["1. Assignment", "Super Admin", "Assigns a PIN code area, service and target to a DEO and a Verifier", <Badge key="a" tone="blue">New</Badge>],
   ["2. Entry", "DEO", "Fills the entry form for each record in the assigned area", <Badge key="b" tone="amber">Pending</Badge>],
   ["3. Verification", "Verifier", "Checks the entry against the source and approves or rejects it", <span key="c" className="flex gap-1"><Badge tone="green">Approved</Badge><Badge tone="red">Rejected</Badge></span>],
   ["4. Correction", "DEO", "Reads the rejection reason, corrects and resubmits the entry", <Badge key="d" tone="amber">Pending</Badge>],
-  ["5. Payout", "Admin", "Approved entries × rate are paid between 15th – 25th of the month", <Badge key="e" tone="green">Paid</Badge>],
+  ["5. Payout", "Admin", "Approved entries are paid between 15th – 25th of the month", <Badge key="e" tone="green">Paid</Badge>],
 ];
 
 export default function ServicesPage() {
@@ -26,15 +28,29 @@ export default function ServicesPage() {
       <PageBanner title="Services" subtitle="Services of National Academic Services of India" />
       <section className="py-14">
         <div className="mx-auto grid max-w-6xl gap-5 px-4 md:grid-cols-3">
-          {SERVICES.map((s) => (
-            <div key={s.t} className="rounded-xl border border-line bg-white p-6 shadow-sm">
-              <div className="mb-3 grid size-12 place-items-center rounded-xl bg-primary-soft text-primary">
-                <s.icon className="size-6" />
+          {SERVICES.map((s) =>
+            s.live ? (
+              <Link
+                key={s.t}
+                href="/login"
+                className="group flex items-center gap-4 rounded-xl border-2 border-primary bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-white"><s.icon className="size-6" /></span>
+                <span className="flex-1">
+                  <span className="block text-lg font-semibold text-navy">{s.t}</span>
+                  <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary">Login to start <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
+                </span>
+              </Link>
+            ) : (
+              <div key={s.t} className="flex items-center gap-4 rounded-xl border border-line bg-white p-6 opacity-80 shadow-sm" aria-disabled="true">
+                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-slate-100 text-muted"><s.icon className="size-6" /></span>
+                <span className="flex-1">
+                  <span className="block text-lg font-semibold text-navy">{s.t}</span>
+                  <Badge tone="amber" className="mt-1">Coming Soon</Badge>
+                </span>
               </div>
-              <h3 className="text-lg font-semibold">{s.t}</h3>
-              <p className="mt-1 text-sm text-muted">{s.d}</p>
-            </div>
-          ))}
+            ),
+          )}
         </div>
       </section>
       <section className="bg-white py-14">

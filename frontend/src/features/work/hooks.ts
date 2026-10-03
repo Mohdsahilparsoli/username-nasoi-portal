@@ -105,5 +105,41 @@ export function useCreateEntry() {
 
 export function useUpdateEntry() {
   const refresh = useRefreshEntries();
-  return useMutation({ mutationFn: (v: { id: string; data: api.SchoolInput }) => api.updateEntry(v.id, v.data), onSuccess: refresh });
+  return useMutation({ mutationFn: (v: { id: string; data: api.RecordInput }) => api.updateEntry(v.id, v.data), onSuccess: refresh });
+}
+
+/** Form definitions (school / college); they rarely change, so they are cached. */
+export function useEntryForms(role: Role) {
+  return useQuery({ queryKey: ["entry-forms"], queryFn: () => api.entryForms(role), staleTime: 30 * 60_000 });
+}
+
+/** A user's profile photo (only when they have one). */
+export function useUserPhoto(role: Role, userId?: string, hasPhoto = true) {
+  return useQuery({
+    queryKey: ["photo", userId],
+    queryFn: () => api.userPhotoUrl(role, userId!),
+    enabled: !!userId && hasPhoto,
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+}
+
+export function useUploadPhoto(role: Role, userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: Blob) => api.uploadMyPhoto(role, file),
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ["photo", userId] }), qc.invalidateQueries({ queryKey: ["my-profile"] })]),
+  });
+}
+
+export function useVerifiers() {
+  return useQuery({ queryKey: ["work", "verifiers"], queryFn: api.listVerifiers });
+}
+
+export function useChangeVerifier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; verifierId: string }) => api.changeVerifier(v.id, v.verifierId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["work"] }),
+  });
 }

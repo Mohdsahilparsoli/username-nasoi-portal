@@ -2,7 +2,7 @@ import * as LabelPrimitive from "@radix-ui/react-label";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-const fieldBase =
+export const fieldBase =
   "w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-ink placeholder:text-slate-400 transition focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/15 disabled:bg-canvas aria-[invalid=true]:border-danger read-only:bg-canvas";
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(

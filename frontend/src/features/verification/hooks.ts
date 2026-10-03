@@ -44,3 +44,7 @@ export function useAdminEntries(f: api.EntryFilter) {
 export function useExportOptions() {
   return useQuery({ queryKey: ["admin-entries", "export-options"], queryFn: api.exportOptions });
 }
+
+export function useVerifierAreas() {
+  return useQuery({ queryKey: ["verify", "areas"], queryFn: api.verifierAreas, refetchOnWindowFocus: true });
+}

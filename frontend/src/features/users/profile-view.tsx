@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useMe } from "@/components/layout/dashboard-shell";
+import { ChangePhotoButton } from "@/features/records/photo-upload";
+import { useUserPhoto } from "@/features/work/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/form-controls";
@@ -97,29 +99,28 @@ export function ProfileView({ withBank }: { withBank?: boolean }) {
   );
 }
 
-/** Photo and signature are fetched with the access token and shown from memory. */
+/** Profile photo (can be changed) and signature, fetched with the access token. */
 function PhotoBlock({ u }: { u: MyProfile }) {
   const { role } = useMe();
-  const photo = u.documents.find((d) => d.kind === "photo");
+  const photo = useUserPhoto(role, u.id);
   const sign = u.documents.find((d) => d.kind === "signature");
-  const { data: urls } = useQuery({
-    queryKey: ["my-photo", photo?.id, sign?.id],
-    enabled: !!photo,
+  const { data: signUrl } = useQuery({
+    queryKey: ["my-signature", sign?.id],
+    enabled: !!sign,
     staleTime: Infinity,
-    queryFn: async () => {
-      const load = async (id?: string) => (id ? URL.createObjectURL(await (await authRaw(role, `/documents/${id}`)).blob()) : undefined);
-      return { photo: await load(photo?.id), sign: await load(sign?.id) };
-    },
+    queryFn: async () => URL.createObjectURL(await (await authRaw(role, `/documents/${sign!.id}`)).blob()),
   });
-  if (!urls?.photo) {
-    return <span className="grid size-24 shrink-0 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>;
-  }
   return (
-    <div className="flex shrink-0 flex-col gap-2">
+    <div className="flex shrink-0 flex-col items-start gap-2">
+      {photo.data ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo.data} alt="Photo" className="h-32 w-26 rounded-lg border border-line object-cover" />
+      ) : (
+        <span className="grid size-24 place-items-center rounded-full bg-primary-soft text-2xl font-bold text-primary">{initials(u.name)}</span>
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={urls.photo} alt="Photo" className="h-32 w-26 rounded-lg border border-line object-cover" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {urls.sign && <img src={urls.sign} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
+      {signUrl && <img src={signUrl} alt="Signature" className="h-10 w-26 rounded border border-line bg-white object-contain p-0.5" />}
+      {role !== "admin" && <ChangePhotoButton />}
     </div>
   );
 }

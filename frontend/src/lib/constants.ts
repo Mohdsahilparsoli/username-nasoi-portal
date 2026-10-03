@@ -15,6 +15,9 @@ export const TASK_TYPES = [
   "Academic Management Services",
 ] as const;
 
+/** Only these services can be assigned now; the others are "Coming Soon". */
+export const ACTIVE_TASK_TYPES: readonly string[] = ["Data Entry Services"];
+
 export const REJECT_REASONS = [
   "Date of birth does not match the source document.",
   "Student name spelling mismatch with school register.",

@@ -11,11 +11,12 @@ import { DataTable, FilterTabs } from "@/components/ui/data-table";
 import { Field, Input, Select } from "@/components/ui/form-controls";
 import { Alert, PageHeader, StatusBadge } from "@/components/ui/misc";
 import { useAdminEntries, useExportOptions } from "@/features/verification/hooks";
+import { codeText } from "@/features/records/record-form";
 import { downloadExport, type AdminEntry, type EntryFilter } from "@/lib/api/verifier";
 import { fmtDateTime, money } from "@/lib/utils";
 
 type Status = "all" | "pending" | "approved" | "rejected";
-type ExportFilter = Pick<EntryFilter, "pincode" | "deoId" | "verifierId" | "assignmentId" | "taskType" | "district" | "from" | "to">;
+type ExportFilter = Pick<EntryFilter, "recordType" | "pincode" | "deoId" | "verifierId" | "assignmentId" | "taskType" | "district" | "from" | "to">;
 
 /* ---------------- Export panel ---------------- */
 function ExportPanel() {
@@ -58,6 +59,12 @@ function ExportPanel() {
 
         <p className="text-sm font-semibold text-navy">Or export by filter</p>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Field label="School / College" htmlFor="x-type">
+            <Select id="x-type" value={f.recordType ?? ""} onChange={set("recordType")}>
+              <option value="">Both</option>
+              {o?.recordTypes.map((t) => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
+            </Select>
+          </Field>
           <Field label="PIN code" htmlFor="x-pin">
             <Select id="x-pin" value={f.pincode ?? ""} onChange={set("pincode")}>
               <option value="">All PIN codes</option>
@@ -127,13 +134,13 @@ function AllEntriesInner() {
     () => [
       { accessorKey: "id", header: "Entry", cell: ({ row: { original: e } }) => <div><b className="text-navy">{e.id}</b><span className="block text-xs text-muted">{e.assignmentId}</span></div> },
       {
-        id: "school",
-        header: "School",
-        accessorFn: (e) => e.schoolName,
+        id: "record",
+        header: "School / College",
+        accessorFn: (e) => e.name,
         cell: ({ row: { original: e } }) => (
           <div className="max-w-72">
-            {e.schoolName}
-            <span className="block text-xs text-muted">UDISE {e.udiseCode} · {e.lgdVillage}</span>
+            {e.name}
+            <span className="block text-xs text-muted">{codeText(e)}</span>
             {e.status === "rejected" && <span className="block text-xs text-danger">Reason: {e.rejectReason}</span>}
           </div>
         ),
@@ -157,7 +164,7 @@ function AllEntriesInner() {
 
   return (
     <>
-      <PageHeader title="All Entries" description="Every school entry on the portal. Export approved entries to Excel or CSV." />
+      <PageHeader title="All Entries" description="Every school and college entry on the portal. Export approved entries to Excel or CSV." />
       <ExportPanel />
       {list.isError && <Alert tone="red" icon={TriangleAlert} className="mb-4">Could not load entries. Please refresh the page.</Alert>}
       <Card>
@@ -174,7 +181,7 @@ function AllEntriesInner() {
           />
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ID / UDISE / school" className="pl-9" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ID / code / name" className="pl-9" />
           </div>
         </div>
         <DataTable columns={columns} data={list.data?.entries ?? []} loading={list.isLoading} emptyText="No entries found." />
