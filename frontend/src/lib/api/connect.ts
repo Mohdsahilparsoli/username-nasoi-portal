@@ -48,7 +48,11 @@ export interface ConnectRequest {
   createdAt: string;
 }
 
+/** Admin only: send to a whole group (every ACTIVE employee in it) instead of chosen people. */
+export type Audience = "custom" | "all" | "all_deo" | "all_vr";
+
 export interface NewMeeting {
+  audience?: Audience;
   title: string;
   link: string;
   startsAt: string;
@@ -61,7 +65,10 @@ export interface NewMeeting {
 
 export interface NewRequest {
   kind: RequestKind;
-  toId: string;
+  toId?: string;
+  /** Admin: several people at once. */
+  toIds?: string[];
+  audience?: Audience;
   entryId?: string;
   subject?: string;
   message: string;
@@ -84,8 +91,8 @@ export const cancelMeeting = (role: Role, id: string) =>
   authRequest<{ meeting: Meeting }>(role, `/connect/meetings/${encodeURIComponent(id)}/cancel`, json("POST", {})).then((r) => r.meeting);
 export const requests = (role: Role, box: "inbox" | "sent") =>
   authRequest<{ requests: ConnectRequest[] }>(role, `/connect/requests?box=${box}`).then((r) => r.requests);
-export const createRequest = (role: Role, v: NewRequest) =>
-  authRequest<{ request: ConnectRequest }>(role, "/connect/requests", json("POST", v)).then((r) => r.request);
+/** Returns the first request created and how many people it was sent to. */
+export const createRequest = (role: Role, v: NewRequest) => authRequest<{ request: ConnectRequest; sent: number }>(role, "/connect/requests", json("POST", v));
 export const respondRequest = (role: Role, id: string, action: "accept" | "decline" | "close", reply?: string) =>
   authRequest<{ request: ConnectRequest }>(role, `/connect/requests/${encodeURIComponent(id)}/respond`, json("POST", { action, reply })).then((r) => r.request);
 export const saveMeetingLink = (role: Role, link: string) =>

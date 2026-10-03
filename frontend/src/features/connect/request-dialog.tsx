@@ -8,7 +8,9 @@ import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
 import { useMe } from "@/components/layout/dashboard-shell";
 import { AuthError } from "@/lib/api/auth";
-import type { RequestKind } from "@/lib/api/connect";
+import type { Audience, RequestKind } from "@/lib/api/connect";
+import { Alert } from "@/components/ui/misc";
+import { AudiencePicker, PeopleChecklist, ROLE_LABEL, audienceText } from "./audience";
 import { useContacts, useCreateRequest } from "./hooks";
 import { toLocalInput } from "./meeting-ui";
 
@@ -19,11 +21,6 @@ export interface RequestPreset {
   subject?: string;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  verifier: "Verifier",
-  deo: "DEO",
-};
 type Errors = Partial<Record<"kind" | "toId" | "entryId" | "subject" | "message" | "preferredAt", string>>;
 
 /** Send a request: "please set up a meeting", a question about an entry, or anything else. */
@@ -37,7 +34,11 @@ export function NewRequestDialog({ open, onOpenChange, preset }: { open: boolean
 
 /** Mounted each time the dialog opens, so it always starts fresh. */
 function RequestForm({ preset, onDone }: { preset?: RequestPreset; onDone: () => void }) {
-  const { role } = useMe();
+  const { role, id: myId } = useMe();
+  const isAdmin = role === "admin";
+  const [audience, setAudience] = useState<Audience>("custom");
+  const [many, setMany] = useState<string[]>(preset?.toId ? [preset.toId] : []);
+  const group = isAdmin && audience !== "custom";
   const contacts = useContacts(role);
   const create = useCreateRequest(role);
   const [kind, setKind] = useState<RequestKind>(preset?.kind ?? (preset?.entryId ? "entry" : "meeting"));
@@ -55,7 +56,7 @@ function RequestForm({ preset, onDone }: { preset?: RequestPreset; onDone: () =>
   const clear = (k: keyof Errors) => setErrors((e) => ({ ...e, [k]: undefined }));
   const submit = async () => {
     const err: Errors = {};
-    if (!toId) err.toId = "Choose who to send it to";
+    if (isAdmin ? !group && !many.length : !toId) err.toId = "Choose who to send it to";
     if (kind === "entry" && !/^ENT\d{6,}$/i.test(entryId.trim())) err.entryId = "Enter the entry ID this request is about (e.g. ENT000123)";
     if (message.trim().length < 5) err.message = "Write your message (at least 5 characters)";
     if (preferredAt && new Date(preferredAt).getTime() < Date.now() - 5 * 60_000) err.preferredAt = "The preferred time is in the past";
@@ -63,20 +64,23 @@ function RequestForm({ preset, onDone }: { preset?: RequestPreset; onDone: () =>
     try {
       const r = await create.mutateAsync({
         kind,
-        toId,
+        ...(isAdmin ? (group ? { audience } : { toIds: many }) : { toId }),
         entryId: entryId.trim().toUpperCase() || undefined,
         subject: subject.trim() || undefined,
         message: message.trim(),
         preferredAt: kind === "meeting" && preferredAt ? new Date(preferredAt).toISOString() : undefined,
       });
-      toast.success(`${r.id} sent to ${r.to?.name ?? toId}`, {
-        description: "They get a notification and an e-mail.",
+      toast.success(r.sent > 1 ? `Sent to ${r.sent} people` : `${r.request.id} sent to ${r.request.to?.name ?? toId}`, {
+        description: r.sent > 1 ? "Everyone gets a notification and an e-mail, and can answer separately." : "They get a notification and an e-mail.",
       });
       onDone();
     } catch (e) {
       if (e instanceof AuthError && e.fields?.length) {
         const fe: Errors = {};
-        for (const f of e.fields) fe[(f.path.split(".")[0] || "message") as keyof Errors] ??= f.message;
+        for (const f of e.fields) {
+          const k = (f.path.split(".")[0] || "message") as string;
+          fe[(k === "audience" || k === "toIds" ? "toId" : k) as keyof Errors] ??= f.message;
+        }
         setErrors(fe);
       } else toast.error((e as Error).message);
     }
@@ -128,23 +132,57 @@ function RequestForm({ preset, onDone }: { preset?: RequestPreset; onDone: () =>
             ))}
           </div>
         </Field>
-        <Field label="Send to" htmlFor="r-to" required error={errors.toId}>
-          <Select
-            id="r-to"
-            value={toId}
-            onChange={(e) => {
-              setToId(e.target.value);
-              clear("toId");
-            }}
-          >
-            <option value="">{contacts.isLoading ? "Loading…" : "-- Choose --"}</option>
-            {list.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} – {c.id} ({ROLE_LABEL[c.role] ?? c.role})
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {isAdmin ? (
+          <>
+            <Field className="sm:col-span-2" label="Send to" required>
+              <AudiencePicker
+                value={audience}
+                onChange={(v) => {
+                  setAudience(v);
+                  clear("toId");
+                }}
+              />
+            </Field>
+            {group ? (
+              <Alert tone="blue" className="sm:col-span-2">
+                The message goes to <b>{audienceText(audience).toLowerCase()}</b> – each gets a notification and an e-mail and can answer you.
+                {errors.toId && <span className="mt-1 block font-semibold text-danger">{errors.toId}</span>}
+              </Alert>
+            ) : (
+              <Field className="sm:col-span-2" label={`People${many.length ? ` (${many.length})` : ""}`} required error={errors.toId}>
+                <PeopleChecklist
+                  contacts={list}
+                  loading={contacts.isLoading}
+                  selected={many}
+                  myId={myId}
+                  roleFilter
+                  onChange={(ids) => {
+                    setMany(ids);
+                    clear("toId");
+                  }}
+                />
+              </Field>
+            )}
+          </>
+        ) : (
+          <Field label="Send to" htmlFor="r-to" required error={errors.toId}>
+            <Select
+              id="r-to"
+              value={toId}
+              onChange={(e) => {
+                setToId(e.target.value);
+                clear("toId");
+              }}
+            >
+              <option value="">{contacts.isLoading ? "Loading…" : "-- Choose --"}</option>
+              {list.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} – {c.id} ({ROLE_LABEL[c.role] ?? c.role})
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         {kind === "entry" ? (
           <Field label="Entry ID" htmlFor="r-entry" required error={errors.entryId}>
             <Input

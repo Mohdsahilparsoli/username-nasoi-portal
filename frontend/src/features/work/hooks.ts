@@ -137,6 +137,14 @@ export function useVerifiers() {
   return useQuery({ queryKey: ["work", "verifiers"], queryFn: api.listVerifiers });
 }
 
+export function useChangeDeo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; deoId: string }) => api.changeDeo(v.id, v.deoId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["work"] }),
+  });
+}
+
 export function useChangeVerifier() {
   const qc = useQueryClient();
   return useMutation({

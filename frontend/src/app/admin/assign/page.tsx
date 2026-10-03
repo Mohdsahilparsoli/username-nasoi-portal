@@ -166,12 +166,28 @@ function AssignInner() {
                 ))}
               </div>
             </Field>
-            <Field className="sm:col-span-2" label="Verifier for this area" htmlFor="verifierId" required error={e.verifierId?.message}>
+            <Field
+              className="sm:col-span-2"
+              label="Verifier for this area"
+              htmlFor="verifierId"
+              required
+              error={e.verifierId?.message}
+              hint={
+                verifiers.data && !verifiers.data.some((v) => v.eligible)
+                  ? "No verifier is free right now – complete a verifier's current area first."
+                  : "Like an operator, a verifier gets one area at a time – busy verifiers cannot be chosen."
+              }
+            >
               <Select id="verifierId" aria-invalid={!!e.verifierId} disabled={verifiers.isLoading} {...register("verifierId")}>
                 <option value="">{verifiers.isLoading ? "Loading verifiers…" : verifiers.data?.length ? "-- Select verifier --" : "No verifier has registered yet"}</option>
                 {verifiers.data?.map((v) => (
-                  <option key={v.id} value={v.id} disabled={v.status !== "active"}>
-                    {v.id} – {v.name}{v.status !== "active" ? ` · ${v.status === "pending" ? "Pending approval" : v.status}` : ` · ${v.activeAreas} active area(s), ${v.pendingEntries} pending`}
+                  <option key={v.id} value={v.id} disabled={!v.eligible}>
+                    {v.id} – {v.name}
+                    {v.status !== "active"
+                      ? ` · ${v.status === "pending" ? "Pending approval" : v.status}`
+                      : v.currentAssignment
+                        ? ` · Busy – verifying ${v.currentAssignment.id} (PIN ${v.currentAssignment.pincode})`
+                        : " · Free"}
                   </option>
                 ))}
               </Select>
@@ -197,7 +213,7 @@ function AssignInner() {
             <Field label="DEO amount per approved entry (₹)" htmlFor="ratePerEntry" required error={e.ratePerEntry?.message} hint="Paid to the operator">
               <Input id="ratePerEntry" type="number" min={1} inputMode="numeric" aria-invalid={!!e.ratePerEntry} {...register("ratePerEntry")} />
             </Field>
-            <Field label="Verifier amount per verified entry (₹)" htmlFor="verifierRate" required error={e.verifierRate?.message} hint="Paid to the verifier for each approve / reject">
+            <Field label="Verifier amount per verified entry (₹)" htmlFor="verifierRate" required error={e.verifierRate?.message} hint="Paid to the verifier only when an entry is finally approved">
               <Input id="verifierRate" type="number" min={0} inputMode="numeric" aria-invalid={!!e.verifierRate} {...register("verifierRate")} />
             </Field>
             <Field label="Deadline" htmlFor="deadline" required error={e.deadline?.message}>

@@ -43,6 +43,9 @@ export interface WorkAssignment {
   seenAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
+  /** Set when the verifier has approved every entry (approved = target) – ready to complete. */
+  allApprovedAt?: string | null;
+  allApprovedBy?: string | null;
   createdAt: string;
   /** Entries submitted (pending + approved), approved and rejected for this work. */
   progress?: { submitted: number; approved: number; rejected: number };
@@ -280,9 +283,15 @@ export async function uploadMyPhoto(role: Role, file: Blob) {
 export interface VerifierRow extends PersonCard {
   status: EmployeeStatus;
   activeAreas: number;
+  /** The area this verifier is busy with; a new one only after it is completed. */
+  currentAssignment: { id: string; pincode: string } | null;
+  eligible: boolean;
   pendingEntries: number;
 }
 export const listVerifiers = () => authRequest<{ verifiers: VerifierRow[] }>("admin", "/admin/verifiers").then((r) => r.verifiers);
+/** Give active work to another (free, active) DEO; rejected entries move to them. */
+export const changeDeo = (id: string, deoId: string) =>
+  authRequest<{ assignment: WorkAssignment; movedEntries: number }>("admin", `/admin/assignments/${encodeURIComponent(id)}/deo`, json("PATCH", { deoId }));
 export const changeVerifier = (id: string, verifierId: string) =>
   authRequest<{ assignment: WorkAssignment; movedEntries: number }>("admin", `/admin/assignments/${encodeURIComponent(id)}/verifier`, json("PATCH", { verifierId }));
 

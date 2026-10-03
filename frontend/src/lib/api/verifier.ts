@@ -64,6 +64,8 @@ export interface VerifierArea {
   area: { state: string; district: string; block: string; village: string; pincode: string };
   deadline: string;
   status: "active" | "completed" | "cancelled";
+  /** The verifier approved every entry – waiting for the admin to complete the work. */
+  allApprovedAt?: string | null;
   deo: PersonCard;
   progress: { submitted: number; approved: number; rejected: number };
 }

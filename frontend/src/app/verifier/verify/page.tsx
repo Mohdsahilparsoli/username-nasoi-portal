@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/form-controls";
 import { Alert, Badge, PageHeader, StatusBadge } from "@/components/ui/misc";
 import { useVerifierEntries, useVerifierSummary } from "@/features/verification/hooks";
 import { codeText } from "@/features/records/record-form";
+import { CurrentAreaCard } from "@/features/verification/area-card";
 import { VerifyDialog } from "@/features/verification/verify-dialog";
 import type { VerifierEntry } from "@/lib/api/verifier";
 import { fmtDateTime } from "@/lib/utils";
@@ -86,6 +87,7 @@ function VerifyInner() {
   return (
     <>
       <PageHeader title="Verify Data" description="Check each school entry against the source and approve it, or reject it with a reason. Oldest entries come first." />
+      <CurrentAreaCard className="mb-6" />
       {list.isError && <Alert tone="red" icon={TriangleAlert} className="mb-4">Could not load entries. Please refresh the page.</Alert>}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">

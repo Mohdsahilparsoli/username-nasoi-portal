@@ -1,16 +1,17 @@
 "use client";
 
-import { CalendarPlus, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CalendarPlus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
-import { Alert, Badge } from "@/components/ui/misc";
+import { Alert } from "@/components/ui/misc";
 import { useMe } from "@/components/layout/dashboard-shell";
-import { Avatar } from "@/features/records/person-card";
 import { useMyProfile } from "@/features/users/hooks";
 import { AuthError } from "@/lib/api/auth";
+import type { Audience } from "@/lib/api/connect";
+import { AudiencePicker, PeopleChecklist, audienceText } from "./audience";
 import { useContacts, useCreateMeeting } from "./hooks";
 import { PLATFORM, PlatformMark, platformOf, toLocalInput } from "./meeting-ui";
 import { cn } from "@/lib/utils";
@@ -25,14 +26,9 @@ export interface MeetingPreset {
   note?: string;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  verifier: "Verifier",
-  deo: "DEO",
-};
 const DURATIONS = [15, 30, 45, 60, 90, 120];
 
-type Errors = Partial<Record<"title" | "link" | "startsAt" | "durationMin" | "participantIds" | "entryId" | "notes", string>>;
+type Errors = Partial<Record<"title" | "link" | "startsAt" | "durationMin" | "participantIds" | "audience" | "entryId" | "notes", string>>;
 
 /**
  * Schedule a Zoom / Google Meet meeting: title, link, date & time (IST),
@@ -66,18 +62,12 @@ function ScheduleForm({ preset, onDone }: { preset?: MeetingPreset; onDone: () =
   const [notes, setNotes] = useState("");
   const [entryId, setEntryId] = useState(preset?.entryId ?? "");
   const [people, setPeople] = useState<string[]>(preset?.participantIds ?? []);
-  const [q, setQ] = useState("");
+  const [audience, setAudience] = useState<Audience>("custom");
   const [errors, setErrors] = useState<Errors>({});
+  const isAdmin = role === "admin";
+  const group = isAdmin && audience !== "custom";
 
   const platform = platformOf(link);
-  const list = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return (contacts.data ?? []).filter((c) => c.id !== myId && (!s || `${c.id} ${c.name}`.toLowerCase().includes(s)));
-  }, [contacts.data, q, myId]);
-  const toggle = (id: string) => {
-    setPeople((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-    setErrors((e) => ({ ...e, participantIds: undefined }));
-  };
 
   const submit = async () => {
     const err: Errors = {};
@@ -87,7 +77,7 @@ function ScheduleForm({ preset, onDone }: { preset?: MeetingPreset; onDone: () =
     const when = startsAt ? new Date(startsAt) : null;
     if (!when || Number.isNaN(when.getTime())) err.startsAt = "Choose the date and time";
     else if (when.getTime() < Date.now() - 5 * 60_000) err.startsAt = "The meeting time is in the past";
-    if (!people.length && !preset?.requestId) err.participantIds = "Choose who should join";
+    if (!group && !people.length && !preset?.requestId) err.participantIds = "Choose who should join";
     if (entryId && !/^ENT\d{6,}$/i.test(entryId.trim())) err.entryId = "Enter a valid entry ID (e.g. ENT000123)";
     if (Object.keys(err).length) return setErrors(err);
     try {
@@ -97,7 +87,8 @@ function ScheduleForm({ preset, onDone }: { preset?: MeetingPreset; onDone: () =
         startsAt: when!.toISOString(),
         durationMin,
         notes: notes.trim() || undefined,
-        participantIds: people,
+        participantIds: group ? [] : people,
+        audience: group ? audience : undefined,
         entryId: entryId.trim().toUpperCase() || undefined,
         requestId: preset?.requestId,
       });
@@ -108,7 +99,10 @@ function ScheduleForm({ preset, onDone }: { preset?: MeetingPreset; onDone: () =
     } catch (e) {
       if (e instanceof AuthError && e.fields?.length) {
         const fe: Errors = {};
-        for (const f of e.fields) fe[(f.path.split(".")[0] || "link") as keyof Errors] ??= f.message;
+        for (const f of e.fields) {
+          const k = (f.path.split(".")[0] || "link") as keyof Errors;
+          fe[k === "audience" ? "participantIds" : k] ??= f.message;
+        }
         setErrors(fe);
       } else toast.error((e as Error).message);
     }
@@ -195,48 +189,42 @@ function ScheduleForm({ preset, onDone }: { preset?: MeetingPreset; onDone: () =
             ))}
           </Select>
         </Field>
-        <Field
-          className="sm:col-span-2"
-          label={`Who should join${people.length ? ` (${people.length})` : ""}`}
-          required={!preset?.requestId}
-          error={errors.participantIds}
-        >
-          <div className="rounded-lg border border-line">
-            <div className="relative border-b border-line">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search name or ID"
-                className="h-10 w-full rounded-t-lg bg-transparent pl-9 pr-3 text-sm outline-none"
-                aria-label="Search people"
-              />
-            </div>
-            <ul className="max-h-52 divide-y divide-line overflow-y-auto">
-              {contacts.isLoading && <li className="p-3 text-sm text-muted">Loading…</li>}
-              {!contacts.isLoading && !list.length && <li className="p-3 text-sm text-muted">Nobody found. You can invite the people you work with.</li>}
-              {list.map((c) => (
-                <li key={c.id}>
-                  <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-canvas">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-primary"
-                      checked={people.includes(c.id)}
-                      onChange={() => toggle(c.id)}
-                      aria-label={`Invite ${c.name}`}
-                    />
-                    <Avatar person={c} size="sm" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-navy">{c.name}</span>
-                      <span className="text-xs text-muted">{c.id}</span>
-                    </span>
-                    <Badge tone={c.role === "admin" ? "saffron" : c.role === "verifier" ? "blue" : "grey"}>{ROLE_LABEL[c.role] ?? c.role}</Badge>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Field>
+        {isAdmin && !preset?.requestId && (
+          <Field className="sm:col-span-2" label="Send to" required>
+            <AudiencePicker
+              value={audience}
+              onChange={(v) => {
+                setAudience(v);
+                setErrors((x) => ({ ...x, participantIds: undefined }));
+              }}
+            />
+          </Field>
+        )}
+        {group ? (
+          <Alert tone="blue" className="sm:col-span-2">
+            The invite (link, date and time) goes to <b>{audienceText(audience).toLowerCase()}</b> – by notification and e-mail.
+            {errors.participantIds && <span className="mt-1 block font-semibold text-danger">{errors.participantIds}</span>}
+          </Alert>
+        ) : (
+          <Field
+            className="sm:col-span-2"
+            label={`Who should join${people.length ? ` (${people.length})` : ""}`}
+            required={!preset?.requestId}
+            error={errors.participantIds}
+          >
+            <PeopleChecklist
+              contacts={contacts.data ?? []}
+              loading={contacts.isLoading}
+              selected={people}
+              myId={myId}
+              roleFilter={isAdmin}
+              onChange={(ids) => {
+                setPeople(ids);
+                setErrors((x) => ({ ...x, participantIds: undefined }));
+              }}
+            />
+          </Field>
+        )}
         <Field label="About entry (optional)" htmlFor="m-entry" error={errors.entryId}>
           <Input
             id="m-entry"

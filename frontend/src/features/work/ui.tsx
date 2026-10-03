@@ -6,9 +6,10 @@ import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/misc";
 import type { WorkAssignment } from "@/lib/api/work";
 
-export function WorkStatusBadge({ a }: { a: Pick<WorkAssignment, "status" | "seenAt"> }) {
+export function WorkStatusBadge({ a }: { a: Pick<WorkAssignment, "status" | "seenAt"> & { allApprovedAt?: string | null } }) {
   if (a.status === "completed") return <Badge tone="green">Completed</Badge>;
   if (a.status === "cancelled") return <Badge tone="red">Cancelled</Badge>;
+  if (a.allApprovedAt) return <Badge tone="green">All approved by VR</Badge>;
   return a.seenAt ? <Badge tone="amber">In progress</Badge> : <Badge tone="blue">New (unseen)</Badge>;
 }
 
