@@ -17,7 +17,7 @@ export interface VerifierEntry extends RecordEntry {
   assignment: { id: string; taskType: string; recordType: RecordType; village: string; block: string };
   verifierId: string | null;
   assignedAt: string | null;
-  history?: { decision: "approved" | "rejected"; reason: string | null; createdAt: string; verifierId: string }[];
+  history?: { decision: "approved" | "rejected"; reason: string | null; fields?: string[] | null; createdAt: string; verifierId: string }[];
 }
 
 export interface HistoryRow {
@@ -53,8 +53,8 @@ export const verifierEntries = (view: "pending" | "all") =>
 export const verifierEntry = (id: string) =>
   authRequest<{ entry: VerifierEntry }>("verifier", `/verifier/entries/${encodeURIComponent(id)}`).then((r) => r.entry);
 
-export const decide = (id: string, decision: "approved" | "rejected", reason?: string) =>
-  authRequest<{ entry: RecordEntry }>("verifier", `/verifier/entries/${encodeURIComponent(id)}/decision`, json("POST", { decision, reason }));
+export const decide = (id: string, decision: "approved" | "rejected", reason?: string, fields?: string[]) =>
+  authRequest<{ entry: RecordEntry }>("verifier", `/verifier/entries/${encodeURIComponent(id)}/decision`, json("POST", { decision, reason, fields }));
 
 export interface VerifierArea {
   id: string;

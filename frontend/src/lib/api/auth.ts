@@ -8,6 +8,7 @@
  * - Refresh token lives in an httpOnly cookie that JavaScript cannot read.
  */
 import type { Role } from "@/types";
+import { useSessionStore } from "@/stores/session-store";
 
 export class AuthError extends Error {
   constructor(
@@ -67,6 +68,10 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 
 function keep(r: TokenResponse) {
   tokens[r.user.role] = { token: r.accessToken, exp: Date.now() + r.expiresIn * 1000 };
+  // Keep the shown ID / name current (e.g. after the move to DEO-01-2026 style IDs).
+  const store = useSessionStore.getState();
+  const s = store.sessions[r.user.role];
+  if (s && (s.id !== r.user.id || s.name !== r.user.name)) store.signIn(r.user.role, { id: r.user.id, name: r.user.name });
   return r;
 }
 

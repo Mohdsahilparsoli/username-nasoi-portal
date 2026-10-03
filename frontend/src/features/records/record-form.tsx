@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/form-controls";
 import { Alert, Badge, DetailGrid, StatusBadge } from "@/components/ui/misc";
 import { AuthError } from "@/lib/api/auth";
 import type { FieldDef, FormDef, RecordEntry, RecordInput } from "@/lib/api/work";
-import { fmtDateTime } from "@/lib/utils";
+import { cn, fmtDateTime } from "@/lib/utils";
 
 /*
  * Generic record form: the fields, options and rules come from the server
@@ -131,7 +131,18 @@ export function AreaStrip({ area }: { area: { state: string; district: string; p
 }
 
 /** All sections and fields of a form. Dropdowns also accept typed values. */
-export function RecordFields({ def, control, errors }: { def: FormDef; control: Control<RecordValues>; errors: FieldErrors<RecordValues> }) {
+export function RecordFields({
+  def,
+  control,
+  errors,
+  marked,
+}: {
+  def: FormDef;
+  control: Control<RecordValues>;
+  errors: FieldErrors<RecordValues>;
+  /** Fields the verifier marked wrong – highlighted until corrected. */
+  marked?: string[];
+}) {
   const raw = useWatch({ control }) as RecordValues;
   // Typed values count too ("urban" = "Urban"), so show/hide follows what the user typed.
   const values: RecordValues = Object.fromEntries(def.fields.map((f) => [f.key, canon(f, (raw?.[f.key] ?? "").trim())]));
@@ -151,8 +162,17 @@ export function RecordFields({ def, control, errors }: { def: FormDef; control: 
               {fields.map((f) => {
                 const err = errors[f.key]?.message as string | undefined;
                 const wide = f.wide ? "sm:col-span-2 xl:col-span-3" : undefined;
+                const bad = marked?.includes(f.key);
                 return (
-                  <Field key={f.key} className={wide} label={f.label} htmlFor={f.key} required={f.required} error={err} hint={f.hint}>
+                  <Field
+                    key={f.key}
+                    className={cn(wide, bad && "-m-2 rounded-lg bg-danger-soft p-2 ring-1 ring-danger/50")}
+                    label={bad ? <span className="text-danger">{f.label} <span className="text-xs font-semibold">– verifier marked this wrong</span></span> : f.label}
+                    htmlFor={f.key}
+                    required={f.required}
+                    error={err}
+                    hint={f.hint}
+                  >
                     <Controller
                       control={control}
                       name={f.key}
@@ -201,11 +221,38 @@ export function RecordFields({ def, control, errors }: { def: FormDef; control: 
 }
 
 /** Read-only view of an entry, grouped by the same sections as the form. */
-export function RecordDetail({ def, entry, showMeta = true }: { def?: FormDef; entry: RecordEntry; showMeta?: boolean }) {
+/** Value of a field as shown to people ("—" when blank). */
+export const shownValue = (v: unknown) => (v === undefined || v === null || v === "" ? "—" : String(v));
+
+/**
+ * Read-only view of an entry, section by section.
+ * - `marked`: fields the verifier marked wrong (shown in red), e.g. for the DEO.
+ * - `selectable`: the verifier ticks wrong fields one by one (or all) while rejecting.
+ */
+export function RecordDetail({
+  def,
+  entry,
+  showMeta = true,
+  marked,
+  selectable,
+}: {
+  def?: FormDef;
+  entry: RecordEntry;
+  showMeta?: boolean;
+  marked?: string[];
+  selectable?: { selected: string[]; onToggle: (key: string) => void };
+}) {
   const d = entry.data;
+  const wrong = new Set(marked ?? (entry.status === "rejected" ? entry.rejectFields ?? [] : []));
+  const labels = def ? def.fields.filter((f) => wrong.has(f.key)).map((f) => f.label) : [];
   return (
     <div className="space-y-5">
-      {entry.status === "rejected" && <Alert tone="red" icon={TriangleAlert}><b>Rejection reason:</b> {entry.rejectReason || "—"}</Alert>}
+      {entry.status === "rejected" && (
+        <Alert tone="red" icon={TriangleAlert}>
+          <b>Rejection reason:</b> <span className="whitespace-pre-wrap">{entry.rejectReason || "—"}</span>
+          {labels.length > 0 && <span className="mt-1 block"><b>Fields to correct ({labels.length}):</b> {labels.join(", ")}</span>}
+        </Alert>
+      )}
       {showMeta && (
         <DetailGrid
           items={[
@@ -229,7 +276,34 @@ export function RecordDetail({ def, entry, showMeta = true }: { def?: FormDef; e
           return (
             <div key={section}>
               <h4 className="mb-3 text-sm font-semibold">{si + 1} – {section}</h4>
-              <DetailGrid items={fields.map((f) => [f.label, d[f.key] === undefined || d[f.key] === "" ? "—" : String(d[f.key])] as [string, string])} />
+              <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                {fields.map((f) => {
+                  const bad = wrong.has(f.key);
+                  const ticked = selectable?.selected.includes(f.key) ?? false;
+                  const body = (
+                    <>
+                      <dt className={cn("text-xs", bad || ticked ? "font-semibold text-danger" : "text-muted")}>{f.label}{bad && " – please correct"}</dt>
+                      <dd className="font-medium break-words">{shownValue(d[f.key])}</dd>
+                    </>
+                  );
+                  if (!selectable) {
+                    return (
+                      <div key={f.key} className={cn("rounded-lg px-2 py-1.5", bad && "bg-danger-soft ring-1 ring-danger/40")}>
+                        {body}
+                      </div>
+                    );
+                  }
+                  return (
+                    <label
+                      key={f.key}
+                      className={cn("flex cursor-pointer gap-2.5 rounded-lg border px-2.5 py-1.5 transition", ticked ? "border-danger bg-danger-soft" : "border-transparent hover:border-line hover:bg-canvas")}
+                    >
+                      <input type="checkbox" className="mt-1 size-4 shrink-0 accent-[var(--color-danger)]" checked={ticked} onChange={() => selectable.onToggle(f.key)} aria-label={`Mark ${f.label} as wrong`} />
+                      <div className="min-w-0">{body}</div>
+                    </label>
+                  );
+                })}
+              </dl>
             </div>
           );
         })

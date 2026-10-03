@@ -13,7 +13,13 @@ export interface PersonCard {
   name: string;
   mobile: string | null;
   hasPhoto?: boolean;
+  /** Personal Zoom / Google Meet room saved in their profile. */
+  meetingLink?: string | null;
+  platform?: MeetingPlatform | null;
+  role?: Role;
 }
+
+export type MeetingPlatform = "zoom" | "google_meet" | "teams" | "other";
 
 export type RecordType = "school" | "college";
 
@@ -188,6 +194,8 @@ export interface RecordEntry {
   data: Record<string, string | number>;
   status: EntryStatus;
   rejectReason: string | null;
+  /** Form fields the verifier marked wrong. */
+  rejectFields?: string[];
   verifiedAt: string | null;
   resubmitCount: number;
   submittedAt: string;

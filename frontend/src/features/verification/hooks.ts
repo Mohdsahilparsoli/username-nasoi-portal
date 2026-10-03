@@ -22,7 +22,7 @@ export function useVerifierHistory(decision?: "approved" | "rejected") {
 export function useDecide() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string; decision: "approved" | "rejected"; reason?: string }) => api.decide(v.id, v.decision, v.reason),
+    mutationFn: (v: { id: string; decision: "approved" | "rejected"; reason?: string; fields?: string[] }) => api.decide(v.id, v.decision, v.reason, v.fields),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["verify"] }),
   });
 }

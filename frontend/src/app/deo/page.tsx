@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState, PageHeader, Progress, Skeleton, StatCard, StatusBadge } from "@/components/ui/misc";
 import { PersonCard } from "@/features/records/person-card";
+import { UpcomingMeetingsCard } from "@/features/connect/upcoming-card";
 import { placeText } from "@/features/work/ui";
 import { codeText } from "@/features/records/record-form";
 import { useMyEntries, useMySummary, useMyWork } from "@/features/work/hooks";
@@ -110,6 +111,7 @@ export default function DeoDashboard() {
           </div>
         </Card>
       </div>
+      <UpcomingMeetingsCard className="mt-6" />
     </>
   );
 }

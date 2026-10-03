@@ -3,7 +3,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
-import { DB_KEY, reloadDb } from "@/lib/mock/db";
 import { SESSION_KEY, useSessionStore } from "@/stores/session-store";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -14,14 +13,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
 
-  // Live sync between tabs: when another tab (another role) changes data,
-  // refresh this tab too.
+  // Keep logins in step between tabs.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === DB_KEY) {
-        reloadDb();
-        client.invalidateQueries();
-      } else if (e.key === SESSION_KEY) {
+      if (e.key === SESSION_KEY) {
         useSessionStore.persist.rehydrate();
       }
     };

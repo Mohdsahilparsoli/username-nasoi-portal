@@ -9,11 +9,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useMe } from "@/components/layout/dashboard-shell";
 import { ChangePhotoButton } from "@/features/records/photo-upload";
+import { MeetingLinkCard } from "@/features/connect/meeting-link-card";
+import { EmployeeStatusBadge } from "@/features/work/employee-status";
+import type { EmployeeStatus } from "@/lib/api/work";
 import { useUserPhoto } from "@/features/work/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/form-controls";
-import { Alert, Badge, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
+import { Alert, DetailGrid, PageHeader, Skeleton } from "@/components/ui/misc";
 import { authRaw } from "@/lib/api/auth";
 import { openDocument, type MyProfile } from "@/lib/api/registration";
 import { fmtDate, initials } from "@/lib/utils";
@@ -72,7 +75,7 @@ export function ProfileView({ withBank }: { withBank?: boolean }) {
       <PageHeader title="Profile" description={withBank ? "Your personal and banking details." : "Your account details."} />
       <div className="space-y-6">
         <Card>
-          <CardHeader title="Personal details" action={<Badge tone={u.status === "active" ? "green" : "red"}>{u.status === "active" ? "Active" : "Blocked"}</Badge>} />
+          <CardHeader title="Personal details" action={<EmployeeStatusBadge status={u.status as EmployeeStatus} />} />
           <CardBody className="flex flex-col gap-6 sm:flex-row">
             <PhotoBlock u={u} />
             <DetailGrid
@@ -91,6 +94,7 @@ export function ProfileView({ withBank }: { withBank?: boolean }) {
           </CardBody>
         </Card>
         <ContactCard u={u} />
+        <MeetingLinkCard />
         {withBank && p && <BankCard u={u} />}
         {u.documents.length > 0 && <DocumentsCard u={u} />}
         <PasswordCard />

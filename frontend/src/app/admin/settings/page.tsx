@@ -10,6 +10,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/form-controls";
 import { Alert, Badge, PageHeader, Skeleton } from "@/components/ui/misc";
 import { MAIL_PLACEHOLDERS } from "@/features/files/email-dialog";
+import { MeetingLinkCard } from "@/features/connect/meeting-link-card";
 import { PasswordCard } from "@/features/users/profile-view";
 import { useAppSettings, useSaveMailTemplate, useSaveSettings } from "@/features/verification/hooks";
 import { fmtDateTime } from "@/lib/utils";
@@ -55,7 +56,7 @@ export default function SettingsPage() {
                 label="Verifier rate per verified entry (₹)"
                 htmlFor="verifierRate"
                 error={e.verifierRate?.message}
-                hint="Paid to the verifier for every entry approved or rejected. Applies to new verifications."
+                hint="Paid to the verifier only when an entry is finally approved (a rejection earns nothing). Applies to new approvals."
               >
                 <Input id="verifierRate" type="number" min={0} inputMode="numeric" {...form.register("verifierRate")} />
               </Field>
@@ -74,6 +75,7 @@ export default function SettingsPage() {
             </form>
           )}
         </Card>
+        <MeetingLinkCard />
         <MailTemplateCard />
       </div>
     </>

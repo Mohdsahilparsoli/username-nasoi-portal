@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Alert, PageHeader, Skeleton, StatusBadge } from "@/components/ui/misc";
+import { PersonCard } from "@/features/records/person-card";
 import { AreaStrip, RecordDetail, RecordFields, fromEntry, recordResolver, showServerError, toInput, type RecordValues } from "@/features/records/record-form";
 import { useEntryForms, useMyEntry, useMyWork, useUpdateEntry } from "@/features/work/hooks";
 import type { FormDef, RecordEntry } from "@/lib/api/work";
@@ -38,6 +39,9 @@ export default function EntryDetailPage() {
         description={e.name}
         action={<Button asChild variant="light"><Link href="/deo/entries"><ArrowLeft /> Back to entries</Link></Button>}
       />
+      {e.status !== "approved" && work.data?.current?.verifier && e.assignmentId === work.data.current.id && (
+        <PersonCard title="Verifier – ask about this entry" person={work.data.current.verifier} entryId={e.id} className="mb-5" />
+      )}
       {editable ? <EditForm entry={e} def={def} /> : <Card><CardBody><RecordDetail def={def} entry={e} /></CardBody></Card>}
     </>
   );
@@ -65,12 +69,20 @@ function EditForm({ entry, def }: { entry: RecordEntry; def: FormDef }) {
       <CardHeader title={entry.assignmentId} action={<StatusBadge status={entry.status} />} />
       <form onSubmit={onSubmit} noValidate className="space-y-6 p-5">
         {rejected ? (
-          <Alert tone="red" icon={TriangleAlert}><b>Rejection reason:</b> {entry.rejectReason || "—"}. Correct the details and resubmit.</Alert>
+          <Alert tone="red" icon={TriangleAlert}>
+            <b>Rejection reason:</b> <span className="whitespace-pre-wrap">{entry.rejectReason || "—"}</span>
+            {!!entry.rejectFields?.length && (
+              <span className="mt-1 block">
+                <b>Fields to correct ({entry.rejectFields.length}):</b> {def.fields.filter((f) => entry.rejectFields!.includes(f.key)).map((f) => f.label).join(", ")} – shown in red below.
+              </span>
+            )}
+            <span className="mt-1 block">Correct the details and resubmit.</span>
+          </Alert>
         ) : (
           <Alert tone="blue">This entry is waiting for verification. You can still correct it.</Alert>
         )}
         <AreaStrip area={entry.area} />
-        <RecordFields def={def} control={form.control} errors={form.formState.errors} />
+        <RecordFields def={def} control={form.control} errors={form.formState.errors} marked={rejected ? entry.rejectFields : undefined} />
         <div className="flex flex-wrap gap-2 border-t border-line pt-5">
           <Button type="submit" disabled={update.isPending}>
             {rejected ? <Send /> : <Save />} {update.isPending ? "Saving…" : rejected ? "Resubmit for verification" : "Save changes"}

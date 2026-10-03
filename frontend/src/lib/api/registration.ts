@@ -40,6 +40,7 @@ export async function submitRegistration(payload: RegistrationPayload) {
 
 export interface MyProfile {
   id: string; role: Role; name: string; mobile: string | null; email: string | null; status: string; statusReason?: string | null; joinedAt: string;
+  meetingLink?: string | null; meetingPlatform?: string | null;
   profile: null | {
     fatherName: string; motherName: string; dob: string; gender: string; category: string; religion: string;
     altMobile: string | null; qualification: string; country: string; state: string; district: string; subDistrict: string;

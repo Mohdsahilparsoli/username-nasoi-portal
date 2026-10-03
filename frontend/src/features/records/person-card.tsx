@@ -1,6 +1,10 @@
 "use client";
 
-import { Phone } from "lucide-react";
+import { MessageSquarePlus, Phone } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { JoinMeetingButton } from "@/features/connect/meeting-ui";
+import { NewRequestDialog } from "@/features/connect/request-dialog";
 import { useMe } from "@/components/layout/dashboard-shell";
 import { useUserPhoto } from "@/features/work/hooks";
 import type { PersonCard as Person } from "@/lib/api/work";
@@ -19,8 +23,13 @@ export function Avatar({ person, size = "md" }: { person: Pick<Person, "id" | "n
   );
 }
 
-/** Basic information of the DEO / verifier who works on the same area. */
-export function PersonCard({ title, person, className }: { title: string; person: Person | null | undefined; className?: string }) {
+/**
+ * Basic information of the DEO / verifier who works on the same area, with
+ * their photo, a "Join Zoom / Google Meet" button (their saved meeting room)
+ * and a "Request" button.
+ */
+export function PersonCard({ title, person, className, entryId }: { title: string; person: Person | null | undefined; className?: string; entryId?: string }) {
+  const [asking, setAsking] = useState(false);
   if (!person) {
     return (
       <div className={cn("rounded-xl border border-dashed border-line bg-white p-4 text-sm text-muted", className)}>
@@ -30,9 +39,9 @@ export function PersonCard({ title, person, className }: { title: string; person
     );
   }
   return (
-    <div className={cn("flex items-center gap-3 rounded-xl border border-line bg-white p-4", className)}>
-      <Avatar person={person} />
-      <div className="min-w-0">
+    <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white p-4", className)}>
+      <Avatar person={person} size="lg" />
+      <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</p>
         <p className="truncate font-semibold text-navy">{person.name}</p>
         <p className="text-xs text-muted">
@@ -46,7 +55,12 @@ export function PersonCard({ title, person, className }: { title: string; person
             </>
           )}
         </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {person.meetingLink && <JoinMeetingButton link={person.meetingLink} platform={person.platform} size="sm" />}
+          <Button size="sm" variant="light" onClick={() => setAsking(true)}><MessageSquarePlus /> Request</Button>
+        </div>
       </div>
+      <NewRequestDialog open={asking} onOpenChange={setAsking} preset={{ toId: person.id, entryId, kind: entryId ? "entry" : "meeting" }} />
     </div>
   );
 }

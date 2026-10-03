@@ -2,7 +2,7 @@
 
 import {
   CircleCheck, CirclePlus, CircleX, ClipboardList, FileText, Folder, LayoutDashboard, LogOut, MapPin, Menu,
-  ReceiptIndianRupee, Search, SlidersHorizontal, Target, TriangleAlert, User, Users, Wallet, type LucideIcon,
+  ExternalLink, ReceiptIndianRupee, School, Search, SlidersHorizontal, Target, TriangleAlert, User, Users, Video, Wallet, type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import { Avatar } from "@/features/records/person-card";
 import { useMyProfile } from "@/features/users/hooks";
 import { NotificationBell } from "@/features/work/notification-bell";
 import { useVerifierSummary } from "@/features/verification/hooks";
+import { useConnectSummary } from "@/features/connect/hooks";
 import { useMyWork } from "@/features/work/hooks";
 import * as authApi from "@/lib/api/auth";
 import { ROLE_META } from "@/lib/constants";
@@ -26,7 +27,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  badge?: "newAssignments" | "pending";
+  badge?: "newAssignments" | "pending" | "connect";
   exact?: boolean;
   external?: boolean;
 }
@@ -40,6 +41,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/deo/entries/new", label: "New Add Entry", icon: CirclePlus },
     { href: "/deo/earnings", label: "Earnings & History", icon: Wallet },
     { href: "/deo/payments", label: "Payments", icon: ReceiptIndianRupee },
+    { href: "/deo/connect", label: "Meetings & Requests", icon: Video, badge: "connect" },
   ],
   verifier: [
     { href: "/verifier", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -48,6 +50,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/verifier/rejected", label: "Rejected", icon: CircleX },
     { href: "/verifier/income", label: "Income", icon: Wallet },
     { href: "/verifier/payments", label: "Payments", icon: ReceiptIndianRupee },
+    { href: "/verifier/connect", label: "Meetings & Requests", icon: Video, badge: "connect" },
     { href: "/verifier/profile", label: "Profile", icon: User },
   ],
   admin: [
@@ -57,6 +60,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/admin/assignments", label: "All Assignments", icon: Folder },
     { href: "/admin/entries", label: "All Entries", icon: ClipboardList },
     { href: "/admin/payouts", label: "Payouts", icon: Wallet },
+    { href: "/admin/connect", label: "Meetings & Requests", icon: Video, badge: "connect" },
     { href: "/admin/settings", label: "Settings", icon: SlidersHorizontal },
   ],
 };
@@ -169,6 +173,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
           {NAV[role].map((item) => (
             <SideLink key={item.href} item={item} active={isActive(item, path, NAV[role])} role={role} userId={session.id} />
           ))}
+          <KnowYourSchoolLink />
           <p className="px-3.5 pb-1.5 pt-5 text-[11px] uppercase tracking-widest text-slate-400">Account</p>
           {role === "deo" && (
             <a href="/terms" target="_blank" className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">
@@ -222,9 +227,33 @@ function SideLink({ item, active, role, userId }: { item: NavItem; active: boole
 function useNavBadge(kind: NavItem["badge"], role: Role, _userId: string) {
   const work = useMyWork(kind === "newAssignments" && role === "deo");
   const verify = useVerifierSummary(kind === "pending" && role === "verifier");
+  const connect = useConnectSummary(role, kind === "connect");
   if (kind === "newAssignments") return work.data?.current && !work.data.current.seenAt ? 1 : 0;
   if (kind === "pending") return verify.data?.pending ?? 0;
+  // Requests waiting for my answer + meetings running now.
+  if (kind === "connect") return (connect.data?.openInbox ?? 0) + (connect.data?.live ?? 0);
   return 0;
+}
+
+/** UDISE+ "Know Your School" search – official school data, opens in a new tab. */
+export const KYS_URL = "https://kys.udiseplus.gov.in/#/advancesearch";
+
+function KnowYourSchoolLink() {
+  return (
+    <a
+      href={KYS_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-4 block rounded-xl border border-saffron/50 bg-gradient-to-br from-saffron/25 to-white/5 p-3.5 text-white transition hover:border-saffron hover:from-saffron/40"
+    >
+      <span className="flex items-center gap-2 text-sm font-bold">
+        <School className="size-[18px] text-saffron" /> School Data
+        <ExternalLink className="ml-auto size-3.5 opacity-80" />
+      </span>
+      <span className="mt-1 block text-xs leading-snug text-slate-300">Search any school on UDISE+ <b className="text-white">Know Your School</b></span>
+      <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-saffron px-2.5 py-1 text-xs font-bold text-white">Open Know Your School →</span>
+    </a>
+  );
 }
 
 /** Tells a DEO / verifier when their account is waiting for approval or inactive. */

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState, PageHeader, Skeleton, StatCard } from "@/components/ui/misc";
 import { PersonCard } from "@/features/records/person-card";
+import { UpcomingMeetingsCard } from "@/features/connect/upcoming-card";
 import { placeText } from "@/features/work/ui";
 import { codeText } from "@/features/records/record-form";
 import { useVerifierAreas, useVerifierEntries, useVerifierSummary } from "@/features/verification/hooks";
@@ -42,6 +43,7 @@ export default function VerifierDashboard() {
         <StatCard label="Total Income" value={s.isLoading ? "…" : money(s.data?.income)} icon={Wallet} tone="saffron" href="/verifier/income" />
       </div>
 
+      <UpcomingMeetingsCard className="mb-6" />
       <Card className="mb-6">
         <CardHeader title="My Areas" action={<span className="text-xs text-muted">{active.length} active</span>} />
         {areas.isLoading ? (
