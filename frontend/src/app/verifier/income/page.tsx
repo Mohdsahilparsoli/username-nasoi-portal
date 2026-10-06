@@ -6,6 +6,7 @@ import { Alert, EmptyState, PageHeader, Skeleton, StatCard } from "@/components/
 import { useMyProfile } from "@/features/users/hooks";
 import { useVerifierSummary } from "@/features/verification/hooks";
 import { fmtMonth, money } from "@/lib/utils";
+import { BankAccount } from "@/features/bank/bank-account";
 
 const thisMonthIST = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit" }).format(new Date()).slice(0, 7);
 
@@ -30,7 +31,7 @@ export default function VerifierIncomePage() {
         </div>
         <div className="text-right">
           <p className="text-sm text-slate-300">Payout credited to</p>
-          <p className="font-semibold">{bank ? `${bank.bankName} • ${bank.account}` : "—"}</p>
+          <BankAccount bank={bank} tone="light" className="text-right" />
           <p className="text-sm text-slate-300">Paid between 15th – 25th of every month</p>
         </div>
       </div>

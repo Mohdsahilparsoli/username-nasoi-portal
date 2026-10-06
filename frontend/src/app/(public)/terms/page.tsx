@@ -14,7 +14,7 @@ const SECTIONS: [string, string[]][] = [
   ["2. Registration", [
     "Registration is free. On successful registration the operator receives an Employee ID and password.",
     "The following must be uploaded: Aadhaar card, bank passbook (first page) or cancelled cheque, passport size photo and signature.",
-    "Aadhaar details are used only to verify the operator's identity and are always displayed masked (XXXX XXXX 1234).",
+    "Aadhaar and bank details are used only to verify the operator's identity and to pay them. They are stored encrypted and shown only to the operator and the NASOI admin.",
   ]],
   ["3. Work methodology & technical requirements", [
     "All operators work strictly on a Work From Home basis.",

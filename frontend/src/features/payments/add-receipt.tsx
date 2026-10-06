@@ -122,7 +122,7 @@ export function AddReceiptDialog({
           {who && (
             <Alert tone="blue" className="sm:col-span-2">
               Earned <b>{money(who.earned)}</b> · paid <b>{money(who.paid)}</b> · balance <b>{money(who.balance)}</b>
-              {who.bank && <> · {who.bank.bankName}, {who.bank.account}, IFSC {who.bank.ifsc}</>}
+              {who.bank && <> · A/c <b className="font-mono">{who.bank.account}</b>, IFSC <b className="font-mono">{who.bank.ifsc}</b>, {who.bank.bankName}</>}
             </Alert>
           )}
           <Field label="Amount paid (₹)" htmlFor="amount" required error={e.amount?.message}>

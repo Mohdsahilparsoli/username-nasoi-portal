@@ -17,8 +17,9 @@ import { Alert } from "@/components/ui/misc";
 import { AuthError } from "@/lib/api/auth";
 import { submitRegistration, uploadDocument, type DocumentKind, type RegistrationPayload, type UploadRef } from "@/lib/api/registration";
 import { CATEGORIES, COUNTRIES, GENDERS, QUALIFICATIONS, RELIGIONS } from "@/lib/constants";
-import { cn, fmtDate, maskAccount } from "@/lib/utils";
-import { BANK_DOC_TYPES, EMPTY_FORM, maskAadhaar, PASSWORD_HINT, REGISTER_AS, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
+import { cn, fmtDate } from "@/lib/utils";
+import { BANK_DOC_TYPES, EMPTY_FORM, PASSWORD_HINT, REGISTER_AS, STEP_SCHEMAS, STEPS, type RegistrationForm } from "./schema";
+import { aadhaarText } from "@/features/bank/bank-account";
 
 const DRAFT_KEY = "nasoi_registration_draft_v5";
 
@@ -563,10 +564,10 @@ export function RegisterWizard() {
                   ["Post Office", v.postOffice], ["PIN Code", v.pincode], ["Police Station", v.policeStation], ["Full Address", v.address],
                 ]} />
                 <ReviewBlock title="Banking Details" onEdit={() => goTo(2)} rows={[
-                  ["Bank Name", v.bankName], ["Account Holder Name", v.holder.toUpperCase()], ["Account Number", maskAccount(v.account)], ["IFSC Code", v.ifsc.toUpperCase()],
+                  ["Bank Name", v.bankName], ["Account Holder Name", v.holder.toUpperCase()], ["Account Number", v.account || "—"], ["IFSC Code", v.ifsc.toUpperCase()],
                 ]} />
                 <ReviewBlock title="Qualification & ID Details" onEdit={() => goTo(3)} rows={[
-                  ["Education Qualification", v.qualification], ["Aadhaar Number", maskAadhaar(v.aadhaar)],
+                  ["Education Qualification", v.qualification], ["Aadhaar Number", aadhaarText(v.aadhaar)],
                   ["PAN Number", v.pan ? v.pan.toUpperCase() : "Not provided (optional)"],
                 ]} />
                 <UploadedDocs

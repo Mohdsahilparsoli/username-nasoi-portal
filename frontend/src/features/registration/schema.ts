@@ -21,7 +21,6 @@ export function isValidAadhaar(n: string) {
   n.split("").reverse().forEach((ch, i) => (c = D[c][P[i % 8][Number(ch)]]));
   return c === 0;
 }
-export const maskAadhaar = (n?: string) => (n && n.length === 12 ? `XXXX XXXX ${n.slice(-4)}` : "—");
 
 export const REGISTER_AS = [
   { value: "deo", label: "Data Entry Operator (DEO)", hint: "Enter school & student records in your assigned area" },

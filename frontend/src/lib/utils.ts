@@ -9,7 +9,6 @@ export function cn(...inputs: ClassValue[]) {
 
 export const money = (n: number | undefined) => "₹" + Number(n || 0).toLocaleString("en-IN");
 
-export const maskAccount = (a?: string) => (a ? "XXXXXX" + a.slice(-4) : "—");
 
 export function fmtDate(v?: string | null) {
   if (!v) return "—";

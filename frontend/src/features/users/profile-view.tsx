@@ -22,6 +22,7 @@ import { openDocument, type MyProfile } from "@/lib/api/registration";
 import { fmtDate, initials } from "@/lib/utils";
 import { RX, zMobile, zOptionalMobile } from "@/lib/validation";
 import { useChangePassword, useMyProfile, useUpdateBank, useUpdateContact } from "./hooks";
+import { BankAccount, aadhaarText } from "@/features/bank/bank-account";
 
 const contactSchema = z.object({
   mobile: zMobile,
@@ -86,7 +87,7 @@ export function ProfileView({ withBank }: { withBank?: boolean }) {
                   ? ([
                       ["Father's Name", p.fatherName], ["Mother's Name", p.motherName], ["Date of Birth", fmtDate(p.dob)],
                       ["Gender", p.gender], ["Category", p.category], ["Religion", p.religion], ["Qualification", p.qualification],
-                      ["Aadhaar Number", p.aadhaar], ["PAN Number", p.pan ?? "—"],
+                      ["Aadhaar Number", <span key="ad" className="font-mono">{aadhaarText(p.aadhaar)}</span>], ["PAN Number", p.pan ?? "—"],
                     ] as [string, string][])
                   : []),
               ]}
@@ -200,7 +201,7 @@ function BankCard({ u }: { u: MyProfile }) {
       <CardHeader title={<span className="flex items-center gap-2"><Landmark className="size-4 text-primary" /> Banking details</span>} action={!editing && <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil /> Update</Button>} />
       <CardBody>
         {!editing ? (
-          <DetailGrid items={[["Bank Name", b.bankName], ["Account Holder Name", b.accountHolder], ["Account Number", b.account], ["IFSC Code", b.ifsc], ["Bank Proof", b.proofType]]} />
+          <DetailGrid items={[["Bank Name", b.bankName], ["Account Holder Name", b.accountHolder], ["Account Number", <BankAccount key="ac" bank={b} />], ["Bank Proof", b.proofType]]} />
         ) : (
           <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-2">
             <Field label="Bank Name" htmlFor="b-bank" error={e.bankName?.message}><Input id="b-bank" {...form.register("bankName")} /></Field>

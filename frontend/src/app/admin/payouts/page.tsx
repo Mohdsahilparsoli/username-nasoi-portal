@@ -17,6 +17,7 @@ import { EmployeeStatusBadge } from "@/features/work/employee-status";
 import { usePayments, usePayouts } from "@/features/work/hooks";
 import { downloadFile, emailFile, type EmployeeRole, type PaymentRecord, type PayoutRow } from "@/lib/api/work";
 import { cn, fmtDate, money } from "@/lib/utils";
+import { BankAccount } from "@/features/bank/bank-account";
 
 const ROLE_LABEL: Record<EmployeeRole, string> = { deo: "Data Entry Operators", verifier: "Verifiers" };
 
@@ -50,7 +51,7 @@ function PayoutsInner() {
         id: "bank",
         header: "Bank",
         enableSorting: false,
-        cell: ({ row: { original: r } }) => (r.bank ? <span className="text-xs">{r.bank.bankName}<span className="block text-muted">{r.bank.account} · {r.bank.ifsc}</span></span> : <span className="text-xs text-muted">—</span>),
+        cell: ({ row: { original: r } }) => <BankAccount bank={r.bank} className="text-xs" />,
       },
       { accessorKey: "workCount", header: role === "deo" ? "Approved entries" : "Verified entries" },
       { accessorKey: "earned", header: "Earned", cell: ({ getValue }) => money(Number(getValue())) },

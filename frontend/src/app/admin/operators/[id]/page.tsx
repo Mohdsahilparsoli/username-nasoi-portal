@@ -14,6 +14,7 @@ import { WorkStatusBadge, areaText } from "@/features/work/ui";
 import { authRaw } from "@/lib/api/auth";
 import { openOperatorDocument, type OperatorDetail } from "@/lib/api/work";
 import { fmtDate, fmtDateTime, initials, money } from "@/lib/utils";
+import { BankAccount, aadhaarText } from "@/features/bank/bank-account";
 
 const DOC_LABEL: Record<string, string> = {
   aadhaar: "Aadhaar Card",
@@ -91,7 +92,7 @@ export default function OperatorDetailPage() {
                     ["Father's Name", p.fatherName], ["Mother's Name", p.motherName], ["Date of Birth", fmtDate(p.dob)],
                     ["Gender / Category", `${p.gender} / ${p.category}`], ["Religion", p.religion], ["Qualification", p.qualification],
                     ["Mobile", [u.mobile, p.altMobile].filter(Boolean).join(" / ")], ["Email", u.email],
-                    ["Aadhaar Number", p.aadhaar], ["PAN", p.pan ?? "—"],
+                    ["Aadhaar Number", <span key="ad" className="font-mono">{aadhaarText(p.aadhaar)}</span>], ["PAN", p.pan ?? "—"],
                     ["Post Office / Police Station", `${p.postOffice} / ${p.policeStation}`],
                     ["Address", [p.address, p.subDistrict, p.district, p.state, p.pincode].filter(Boolean).join(", ")],
                   ]}
@@ -107,8 +108,8 @@ export default function OperatorDetailPage() {
               <CardBody>
                 <DetailGrid
                   items={[
-                    ["Bank", p.bank.bankName], ["Account Holder", p.bank.accountHolder], ["Account No.", p.bank.account],
-                    ["IFSC", p.bank.ifsc], ["Proof", p.bank.proofType],
+                    ["Bank", p.bank.bankName], ["Account Holder", p.bank.accountHolder], ["Account No.", <BankAccount key="ac" bank={p.bank} />],
+                    ["Proof", p.bank.proofType],
                   ]}
                 />
               </CardBody>
