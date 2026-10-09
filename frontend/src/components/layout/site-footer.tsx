@@ -33,6 +33,12 @@ export function SiteFooter() {
       <div className="border-t border-white/15">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-4 py-4 text-xs">
           <span>© {new Date().getFullYear()} National Academic Services of India</span>
+          <span>
+            Designed &amp; Developed by{" "}
+            <a href="https://growvika.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-white hover:underline">
+              GrowVika
+            </a>
+          </span>
         </div>
       </div>
     </footer>

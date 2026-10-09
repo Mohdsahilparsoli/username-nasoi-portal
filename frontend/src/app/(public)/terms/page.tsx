@@ -1,6 +1,4 @@
-import { TriangleAlert } from "lucide-react";
 import { PageBanner } from "@/components/layout/page-banner";
-import { Alert } from "@/components/ui/misc";
 
 export const metadata = { title: "Terms & Conditions" };
 
@@ -29,43 +27,20 @@ const SECTIONS: [string, string[]][] = [
   ]],
 ];
 
-const DECLARATION = [
-  "I acknowledge and accept that my engagement is strictly on a Contractual / Part-Time basis under the National Academic Services of India (NASOI) and does not amount to a Permanent Job.",
-  "I shall perform data entry duties exclusively on the official portal / app provided by the company.",
-  "If I fail to perform any work through my ID for 10 consecutive days, the company holds the right to automatically cancel my ID.",
-  "I shall receive remuneration solely for accurate and verified data entries under a commission-based structure as per rates determined by NASOI, which are subject to periodic revision by the company.",
-  "All data entered by me is the absolute property of the company. I shall not misuse, share or leak data under any circumstances, failing which legal action may be initiated against me.",
-  "In the event of any rule violation, submission of incorrect data or prolonged inactivity, the company reserves the right to terminate my contract instantly.",
-  "I have read, understood and unconditionally agreed to all the terms and conditions outlined above.",
-];
-
 export default function TermsPage() {
   return (
     <>
-      <PageBanner title="Terms & Conditions" subtitle="Terms and Conditions & Self-Declaration – National Academic Services of India (NASOI) – Data Entry Operations" />
+      <PageBanner title="Terms & Conditions" subtitle="National Academic Services of India (NASOI) – Data Entry Operations" />
       <section className="py-12">
         <div className="mx-auto max-w-4xl rounded-xl border border-line bg-white p-6 shadow-sm sm:p-8">
-          <Alert tone="amber" icon={TriangleAlert}>
-            No registration fee, security deposit or payment of any kind is collected on this portal.
-          </Alert>
-          {SECTIONS.map(([h, items]) => (
-            <div key={h} className="mt-6">
+          {SECTIONS.map(([h, items], n) => (
+            <div key={h} className={n ? "mt-6" : ""}>
               <h3 className="text-lg font-semibold text-primary">{h}</h3>
               <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm">
                 {items.map((i) => <li key={i}>{i}</li>)}
               </ul>
             </div>
           ))}
-          <div className="mt-8 border-t border-line pt-6">
-            <h3 className="text-lg font-semibold text-primary">Self-Declaration (Legal Format)</h3>
-            <p className="mt-2 text-sm">
-              I, <b>[Operator Full Name]</b>, S/o / D/o <b>[Father / Mother Name]</b>, resident of <b>[Complete Address]</b>, do hereby
-              solemnly declare and affirm as follows:
-            </p>
-            <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm">
-              {DECLARATION.map((d) => <li key={d}>{d}</li>)}
-            </ol>
-          </div>
         </div>
       </section>
     </>
