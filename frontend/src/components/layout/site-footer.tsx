@@ -9,10 +9,6 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <Brand dark />
-          <p className="mt-3 max-w-md">
-            A school data entry portal covering the complete operator workflow: registration, school-wise
-            assignment, verification and earnings.
-          </p>
         </div>
         <div>
           <h4 className="mb-2 font-semibold text-white">Quick links</h4>
