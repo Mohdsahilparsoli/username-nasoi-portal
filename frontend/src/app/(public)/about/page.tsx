@@ -20,8 +20,8 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold">Our mission</h2>
             <p className="mt-3 text-ink/90">
-              National Academic Services of India (NASOI) is a demo project that models how school records – student
-              results, school surveys and scholarship applications – can be digitised by a distributed team of Data
+              National Academic Services of India (NASOI) is a portal through which school records – student
+              results, school surveys and scholarship applications – are digitised by a distributed team of Data
               Entry Operators working from home.
             </p>
             <p className="mt-3 text-ink/90">

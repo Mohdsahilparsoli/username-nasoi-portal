@@ -56,7 +56,7 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted">₹10 per approved entry (demo rate)</p>
+            <p className="mt-3 text-xs text-muted">Paid for every approved entry, at the rate set for each assignment.</p>
           </div>
         </div>
       </section>

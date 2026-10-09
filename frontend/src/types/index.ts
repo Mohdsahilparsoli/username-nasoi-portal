@@ -30,7 +30,7 @@ export interface User {
   address?: string;
   qualification?: string;
   bank?: BankDetails;
-  /** Small data-URL thumbnail (demo only; real app stores a file on the server). */
+  /** Small data-URL thumbnail shown while registering (the file itself is stored on the server). */
   photo?: string;
   photoName?: string;
   certificateName?: string;
@@ -39,7 +39,7 @@ export interface User {
   country?: string;
   postOffice?: string;
   policeStation?: string;
-  /** Stored in full only in the demo; always shown masked (XXXX XXXX 1234). */
+  /** Stored encrypted on the server; shown only to the owner and the admin. */
   aadhaar?: string;
   aadhaarDocName?: string;
   pan?: string;
@@ -152,7 +152,7 @@ export interface RegisterInput {
   country?: string;
   postOffice?: string;
   policeStation?: string;
-  /** Stored in full only in the demo; always shown masked (XXXX XXXX 1234). */
+  /** Stored encrypted on the server; shown only to the owner and the admin. */
   aadhaar?: string;
   aadhaarDocName?: string;
   pan?: string;

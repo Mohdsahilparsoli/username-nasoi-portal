@@ -46,7 +46,7 @@ export default function TermsPage() {
       <section className="py-12">
         <div className="mx-auto max-w-4xl rounded-xl border border-line bg-white p-6 shadow-sm sm:p-8">
           <Alert tone="amber" icon={TriangleAlert}>
-            This is a demo project. No registration fee, security deposit or payment of any kind is collected on this portal.
+            No registration fee, security deposit or payment of any kind is collected on this portal.
           </Alert>
           {SECTIONS.map(([h, items]) => (
             <div key={h} className="mt-6">

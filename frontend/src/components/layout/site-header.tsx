@@ -14,17 +14,6 @@ const NAV = [
   { href: "/services", label: "Services" },
 ];
 
-export function DemoStrip() {
-  const path = usePathname();
-  // Login and registration are live: no demo notice there.
-  if (["/register", "/login", "/forgot-password", "/reset-password"].some((p) => path?.startsWith(p))) return null;
-  return (
-    <div className="bg-navy px-4 py-1.5 text-center text-xs text-white">
-      Demo project – sample data only. Not a real organisation. No fees are collected.
-    </div>
-  );
-}
-
 export function SiteHeader() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
